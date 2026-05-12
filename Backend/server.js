@@ -9,7 +9,6 @@ const path = require("path");
 const fs = require("fs");
 const connectDB = require("./config/db");
 
-
 const authRoutes = require("./routes/index");
 const userRoutes = require("./routes/userRoutes");
 const messageRoutes = require("./routes/messageRoutes");
@@ -28,9 +27,16 @@ if (!fs.existsSync(uploadsDir)) {
 app.use("/uploads", express.static(uploadsDir));
 
 const server = http.createServer(app);
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://campus-friend.vercel.app",
+  process.env.CLIENT_URL,
+].filter(Boolean);
+
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173", "https://campus-friend.vercel.app"],
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -44,10 +50,19 @@ app.use(helmet());
 app.use(morgan("dev"));
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://campus-friend.vercel.app"],
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+app.options("*", cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

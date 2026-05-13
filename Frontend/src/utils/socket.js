@@ -5,7 +5,9 @@ let socket = null;
 export const initSocket = (token) => {
   if (socket) socket.disconnect();
 
-  const socketUrl = import.meta.env.VITE_API_URL || "/";
+  const socketUrl = import.meta.env.VITE_API_URL
+    ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, "")
+    : "/";
 
   socket = io(socketUrl, {
     auth: { token },

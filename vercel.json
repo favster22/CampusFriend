@@ -1,24 +1,26 @@
 {
   "version": 2,
-  "rewrites": [
+  "builds": [
     {
-      "source": "/api/(.*)",
-      "destination": "/Backend/server.js"
+      "src": "Backend/api/index.js",
+      "use": "@vercel/node"
     },
     {
-      "source": "/(.*)",
-      "destination": "/Frontend/index.html"
+      "src": "Frontend/package.json",
+      "use": "@vercel/static-build"
     }
   ],
-  "experimentalServices": {
-    "frontend": {
-      "entrypoint": "Frontend",
-      "routePrefix": "/",
-      "framework": "vite"
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/Backend/api/index.js"
     },
-    "backend": {
-      "entrypoint": "Backend",
-      "routePrefix": "/_/backend"
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/Frontend/dist/index.html"
     }
-  }
+  ]
 }

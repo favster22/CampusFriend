@@ -1,1 +1,19 @@
+# Vercel
 .vercel
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.local
+
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build output
+dist/
+build/
+
+# Uploads
+Backend/uploads/

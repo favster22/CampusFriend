@@ -90,12 +90,13 @@ export default function ProfilePage() {
   );
 
   if (!profile) return (
-    <div className="text-center py-24 text-gray-400">
-      <p className="font-medium">User not found</p>
+    <div className="text-center py-24">
+      <p className="font-medium text-gray-400">User not found</p>
     </div>
   );
 
-  const initials = profile.fullName?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+  const initials = profile.fullName?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  const isVerified = profile.verified === true || me?.verified === true;
 
   return (
     <div className="max-w-2xl mx-auto p-6">
@@ -104,15 +105,19 @@ export default function ProfilePage() {
         {/* Banner */}
         <div
           className="h-28 bg-gradient-to-r from-primary-700 to-primary-500"
-          style={profile.header ? { backgroundImage: `url(${profile.header})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+          style={profile.header ? {
+            backgroundImage: `url(${profile.header})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center"
+          } : {}}
         />
 
         <div className="px-6 pb-6">
           <div className="flex items-end justify-between -mt-10 mb-4">
-            <div className="w-20 h-20 rounded-2xl bg-primary-100 border-4 border-white flex items-center justify-center font-display font-bold text-2xl text-primary-700 overflow-hidden shadow-card">
+            <div className="w-20 h-20 rounded-2xl bg-primary-100 border-4 border-white flex items-center justify-center overflow-hidden">
               {profile.avatar
                 ? <img src={profile.avatar} alt="" className="w-full h-full object-cover" />
-                : initials
+                : <span className="text-primary-700 font-bold text-xl">{initials}</span>
               }
             </div>
             <div className="flex gap-2 mb-1">
@@ -132,15 +137,14 @@ export default function ProfilePage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="col-span-2">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Profile Header</label>
-                  <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 h-32 mb-2">
-                    {form.header ? (
-                      <img src={form.header} alt="Profile header" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No header selected</div>
-                    )}
-                    <label className="absolute right-3 bottom-3 bg-white border border-gray-200 px-3 py-1 text-xs rounded-full cursor-pointer">
-                      {uploadingHeader ? "Uploading…" : "Upload header"}
-                      <input type="file" accept="image/*" onChange={(e) => handleImageChange("header", e.target.files?.[0])} className="hidden" />
+                  <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 h-32">
+                    {form.header
+                      ? <img src={form.header} alt="Profile header" className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center text-gray-400 text-sm">No header</div>
+                    }
+                    <label className="absolute right-3 bottom-3 bg-white border border-gray-200 px-3 py-1 text-xs cursor-pointer rounded-lg">
+                      {uploadingHeader ? "Uploading..." : "Upload header"}
+                      <input type="file" accept="image/*" onChange={(e) => handleImageChange("header", e.target.files[0])} className="hidden" />
                     </label>
                   </div>
                 </div>
@@ -148,44 +152,50 @@ export default function ProfilePage() {
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Profile Picture</label>
                   <div className="flex items-center gap-3">
-                    <div className="w-20 h-20 rounded-2xl bg-primary-100 border border-gray-200 overflow-hidden flex items-center justify-center text-primary-700 font-display font-bold text-2xl">
-                      {form.avatar ? <img src={form.avatar} alt="Avatar preview" className="w-full h-full object-cover" /> : initials}
+                    <div className="w-20 h-20 rounded-2xl bg-primary-100 border border-gray-200 overflow-hidden">
+                      {form.avatar && <img src={form.avatar} alt="Avatar preview" className="w-full h-full object-cover" />}
                     </div>
                     <label className="btn-primary text-xs cursor-pointer px-3 py-2">
-                      {uploadingAvatar ? "Uploading…" : "Upload avatar"}
-                      <input type="file" accept="image/*" onChange={(e) => handleImageChange("avatar", e.target.files?.[0])} className="hidden" />
+                      {uploadingAvatar ? "Uploading..." : "Upload avatar"}
+                      <input type="file" accept="image/*" onChange={(e) => handleImageChange("avatar", e.target.files[0])} className="hidden" />
                     </label>
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Full Name</label>
-                  <input value={form.fullName} onChange={e => setForm(p => ({...p, fullName: e.target.value}))} className="input-base" />
+                  <input value={form.fullName} onChange={(e) => setForm(p => ({ ...p, fullName: e.target.value }))} className="input-field" />
                 </div>
+
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Department</label>
-                  <input value={form.department} onChange={e => setForm(p => ({...p, department: e.target.value}))} className="input-base" placeholder="Computer Engineering" />
+                  <input value={form.department} onChange={(e) => setForm(p => ({ ...p, department: e.target.value }))} className="input-field" />
                 </div>
+
                 <div className="col-span-2">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Bio</label>
-                  <textarea value={form.bio} onChange={e => setForm(p => ({...p, bio: e.target.value}))} rows={3} className="input-base resize-none" placeholder="Tell everyone about yourself…" />
+                  <textarea value={form.bio} onChange={(e) => setForm(p => ({ ...p, bio: e.target.value }))} rows={3} className="input-field" />
                 </div>
+
                 <div className="col-span-2">
                   <label className="block text-xs font-medium text-gray-600 mb-1">Skills (comma-separated)</label>
-                  <input value={form.skills} onChange={e => setForm(p => ({...p, skills: e.target.value}))} className="input-base" placeholder="React, Python, UI/UX Design" />
+                  <input value={form.skills} onChange={(e) => setForm(p => ({ ...p, skills: e.target.value }))} className="input-field" />
                 </div>
+
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">GitHub URL</label>
-                  <input value={form.socialLinks?.github || ""} onChange={e => setForm(p => ({...p, socialLinks: {...p.socialLinks, github: e.target.value}}))} className="input-base" placeholder="https://github.com/…" />
+                  <input value={form.socialLinks?.github || ""} onChange={(e) => setForm(p => ({ ...p, socialLinks: { ...p.socialLinks, github: e.target.value } }))} className="input-field" />
                 </div>
+
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">LinkedIn URL</label>
-                  <input value={form.socialLinks?.linkedin || ""} onChange={e => setForm(p => ({...p, socialLinks: {...p.socialLinks, linkedin: e.target.value}}))} className="input-base" placeholder="https://linkedin.com/in/…" />
+                  <input value={form.socialLinks?.linkedin || ""} onChange={(e) => setForm(p => ({ ...p, socialLinks: { ...p.socialLinks, linkedin: e.target.value } }))} className="input-field" />
                 </div>
               </div>
+
               <div className="flex gap-2 justify-end">
                 <button type="button" onClick={() => setEditing(false)} className="btn-ghost">Cancel</button>
-                <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2 disabled:opacity-60">
+                <button type="submit" disabled={saving} className="btn-primary flex items-center gap-2 disabled:opacity-50">
                   {saving && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                   Save Changes
                 </button>
@@ -195,8 +205,7 @@ export default function ProfilePage() {
             <>
               <div className="flex items-center gap-2">
                 <h1 className="font-display font-bold text-xl text-gray-800">{profile.fullName}</h1>
-                {console.log("profile.verified:", profile?.verified)}
-                {profile.verified === true && (
+                {isVerified && (
                   <BadgeCheck className="w-5 h-5 fill-blue-500 text-white" />
                 )}
               </div>
@@ -206,7 +215,7 @@ export default function ProfilePage() {
 
               {profile.skills?.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-4">
-                  {profile.skills.map(s => (
+                  {profile.skills.map((s) => (
                     <span key={s} className="text-xs bg-primary-50 text-primary-700 px-2.5 py-1 rounded-full font-medium">{s}</span>
                   ))}
                 </div>
@@ -214,16 +223,21 @@ export default function ProfilePage() {
 
               <div className="flex gap-3 mt-4">
                 {profile.socialLinks?.github && (
-                  <a href={profile.socialLinks.github} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-gray-700 transition"><Github className="w-5 h-5" /></a>
+                  <a href={profile.socialLinks.github} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-gray-600">
+                    <Github className="w-4 h-4" />
+                  </a>
                 )}
                 {profile.socialLinks?.linkedin && (
-                  <a href={profile.socialLinks.linkedin} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-blue-600 transition"><Linkedin className="w-5 h-5" /></a>
+                  <a href={profile.socialLinks.linkedin} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-gray-600">
+                    <Linkedin className="w-4 h-4" />
+                  </a>
                 )}
                 {profile.socialLinks?.twitter && (
-                  <a href={profile.socialLinks.twitter} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-sky-500 transition"><Twitter className="w-5 h-5" /></a>
+                  <a href={profile.socialLinks.twitter} target="_blank" rel="noreferrer" className="text-gray-400 hover:text-gray-600">
+                    <Twitter className="w-4 h-4" />
+                  </a>
                 )}
               </div>
-
             </>
           )}
         </div>
@@ -232,9 +246,11 @@ export default function ProfilePage() {
       {/* Communities */}
       {profile.communities?.length > 0 && (
         <div className="bg-white rounded-xl shadow-card p-5">
-          <h2 className="font-semibold text-sm text-gray-800 mb-3 flex items-center gap-2"><Users className="w-4 h-4 text-gray-400" /> Communities</h2>
+          <h2 className="font-semibold text-sm text-gray-800 mb-3 flex items-center gap-2">
+            <Users className="w-4 h-4" /> Communities
+          </h2>
           <div className="flex flex-wrap gap-2">
-            {profile.communities.map(c => (
+            {profile.communities.map((c) => (
               <span key={c._id} className="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full">{c.name}</span>
             ))}
           </div>

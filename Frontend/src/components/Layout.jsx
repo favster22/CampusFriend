@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, User, MessageSquare, Users,
   Rss, BookOpen, Bell, Search, ChevronDown,
-  LogOut, Settings, Menu, X,
+  LogOut, Settings, Menu, X, FileText, UserCircle,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import api from "../utils/api";
 
 const NAV_ITEMS = [
   { to: "/dashboard",   label: "Dashboard",    icon: LayoutDashboard },
@@ -15,6 +16,189 @@ const NAV_ITEMS = [
   { to: "/feed",        label: "Campus Feed",  icon: Rss },
   { to: "/resources",   label: "Resource Hub", icon: BookOpen },
 ];
+
+function SearchBar() {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState({ users: [], posts: [], communities: [] });
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const containerRef = useRef(null);
+  const debounceRef = useRef(null);
+
+  const search = useCallback(async (q) => {
+    if (!q.trim()) {
+      setResults({ users: [], posts: [], communities: [] });
+      setOpen(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await api.get("/search", { params: { q } });
+      setResults(res.data || { users: [], posts: [], communities: [] });
+      setOpen(true);
+    } catch (e) {
+      // Fallback: try individual endpoints if unified search isn't available
+      try {
+        const [usersRes, postsRes] = await Promise.allSettled([
+          api.get("/users/search", { params: { q } }),
+          api.get("/feed/search", { params: { q } }),
+        ]);
+        setResults({
+          users: usersRes.status === "fulfilled" ? usersRes.value.data.users || [] : [],
+          posts: postsRes.status === "fulfilled" ? postsRes.value.data.posts || [] : [],
+          communities: [],
+        });
+        setOpen(true);
+      } catch (_) {
+        console.error("Search failed", e);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleChange = (e) => {
+    const val = e.target.value;
+    setQuery(val);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => search(val), 300);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Escape") {
+      setOpen(false);
+      setQuery("");
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const hasResults =
+    results.users?.length > 0 ||
+    results.posts?.length > 0 ||
+    results.communities?.length > 0;
+
+  const goTo = (path) => {
+    setOpen(false);
+    setQuery("");
+    navigate(path);
+  };
+
+  return (
+    <div ref={containerRef} className="flex-1 max-w-lg mx-auto relative hidden md:block">
+      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 pointer-events-none" />
+      {loading && (
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-white/40 border-t-white/80 rounded-full animate-spin" />
+      )}
+      <input
+        type="text"
+        value={query}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        onFocus={() => query && hasResults && setOpen(true)}
+        placeholder="Search Students, Groups, or Posts"
+        className="w-full bg-white/10 border border-white/20 rounded-full py-1.5 pl-9 pr-4 text-sm text-white placeholder-white/50 focus:outline-none focus:bg-white/20 transition"
+      />
+
+      {open && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 max-h-96 overflow-y-auto">
+          {!hasResults && !loading && (
+            <div className="px-4 py-6 text-center text-sm text-gray-400">
+              No results for "{query}"
+            </div>
+          )}
+
+          {results.users?.length > 0 && (
+            <div>
+              <p className="px-4 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Students</p>
+              {results.users.map((u) => {
+                const initials = u.fullName?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+                return (
+                  <button
+                    key={u._id}
+                    onClick={() => goTo(`/profile/${u.username}`)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-700 font-semibold text-xs flex items-center justify-center overflow-hidden shrink-0">
+                      {u.avatar
+                        ? <img src={u.avatar} alt="" className="w-full h-full object-cover" />
+                        : initials}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{u.fullName}</p>
+                      <p className="text-xs text-gray-400 truncate">@{u.username}{u.department ? ` · ${u.department}` : ""}</p>
+                    </div>
+                    <UserCircle className="w-4 h-4 text-gray-300 ml-auto shrink-0" />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {results.communities?.length > 0 && (
+            <div>
+              <p className="px-4 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Communities</p>
+              {results.communities.map((c) => (
+                <button
+                  key={c._id}
+                  onClick={() => goTo(`/communities/${c._id}`)}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+                >
+                  <div className="w-8 h-8 rounded-full bg-green-100 text-green-700 font-semibold text-xs flex items-center justify-center shrink-0">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-800 truncate">{c.name}</p>
+                    <p className="text-xs text-gray-400 truncate">{c.memberCount || 0} members</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {results.posts?.length > 0 && (
+            <div>
+              <p className="px-4 pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">Posts</p>
+              {results.posts.map((p) => (
+                <button
+                  key={p._id}
+                  onClick={() => goTo(`/feed?post=${p._id}`)}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+                >
+                  <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm text-gray-700 truncate">{p.content}</p>
+                    <p className="text-xs text-gray-400 truncate">by {p.author?.fullName}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="border-t border-gray-100 px-4 py-2.5">
+            <button
+              onClick={() => goTo(`/search?q=${encodeURIComponent(query)}`)}
+              className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+            >
+              See all results for "{query}"
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function Layout() {
   const { user, logout } = useAuth();
@@ -37,11 +221,9 @@ export default function Layout() {
         setNotificationsOpen(false);
       }
     };
-
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
-
 
   const initials = user?.fullName
     ?.split(" ")
@@ -64,15 +246,8 @@ export default function Layout() {
           </span>
         </NavLink>
 
-        {/* Search bar */}
-        <div className="flex-1 max-w-lg mx-auto relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
-          <input
-            type="text"
-            placeholder="Search Students, Groups, or Posts"
-            className="w-full bg-white/10 border border-white/20 rounded-full py-1.5 pl-9 pr-4 text-sm text-white placeholder-white/50 focus:outline-none focus:bg-white/20 transition"
-          />
-        </div>
+        {/* Functional Search bar */}
+        <SearchBar />
 
         {/* Right actions */}
         <div className="ml-auto flex items-center gap-2">
@@ -98,7 +273,7 @@ export default function Layout() {
                 </div>
                 <div className="px-4 py-4 text-sm text-gray-600">
                   <p className="font-medium text-gray-800">No new notifications</p>
-                  <p className="mt-2 text-xs text-gray-500">You’ll see alerts here when someone mentions you or sends a message.</p>
+                  <p className="mt-2 text-xs text-gray-500">You'll see alerts here when someone mentions you or sends a message.</p>
                 </div>
               </div>
             )}
@@ -219,5 +394,5 @@ export default function Layout() {
         </main>
       </div>
     </div>
-    );
+  );
 }

@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { BadgeCheck, Edit3, Github, Linkedin, Twitter, MessageSquare, Users } from "lucide-react";
+import {
+  BadgeCheck, Edit3, Github, Linkedin, Twitter,
+  MessageSquare, Users, UserPlus, UserMinus, Eye, EyeOff,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
 
@@ -14,6 +17,11 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingHeader, setUploadingHeader] = useState(false);
+  const [following, setFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+  // hideLikes: only the profile owner (me) can toggle this; stored in user settings
+  const [hideLikes, setHideLikes] = useState(false);
+  const [savingHideLikes, setSavingHideLikes] = useState(false);
 
   const isMe = me?.username === username;
 
@@ -22,16 +30,22 @@ export default function ProfilePage() {
       setLoading(true);
       try {
         const res = await api.get(`/users/${username}`);
-        setProfile(res.data.user);
-        if (isMe) setForm({
-          fullName: res.data.user.fullName,
-          bio: res.data.user.bio || "",
-          department: res.data.user.department || "",
-          skills: res.data.user.skills?.join(", ") || "",
-          socialLinks: res.data.user.socialLinks || {},
-          avatar: res.data.user.avatar || "",
-          header: res.data.user.header || "",
-        });
+        const u = res.data.user;
+        setProfile(u);
+        setFollowing(u.followers?.includes(me?._id) || false);
+        if (isMe) {
+          setForm({
+            fullName: u.fullName,
+            bio: u.bio || "",
+            department: u.department || "",
+            skills: u.skills?.join(", ") || "",
+            socialLinks: u.socialLinks || {},
+            avatar: u.avatar || "",
+            header: u.header || "",
+          });
+          // Load hideLikes preference (stored in user settings or profile)
+          setHideLikes(u.hideLikes === true || me?.hideLikes === true);
+        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -39,7 +53,7 @@ export default function ProfilePage() {
       }
     };
     load();
-  }, [username]);
+  }, [username, isMe]);
 
   const uploadImage = async (file) => {
     const data = new FormData();
@@ -83,6 +97,42 @@ export default function ProfilePage() {
     }
   };
 
+  const handleFollow = async () => {
+    setFollowLoading(true);
+    try {
+      const res = await api.patch(`/users/${username}/follow`);
+      setFollowing(res.data.following);
+      setProfile((prev) => ({
+        ...prev,
+        followersCount: res.data.following
+          ? (prev.followersCount || 0) + 1
+          : Math.max((prev.followersCount || 0) - 1, 0),
+        followers: res.data.following
+          ? [...(prev.followers || []), me._id]
+          : (prev.followers || []).filter((id) => id !== me._id),
+      }));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
+  const handleToggleHideLikes = async () => {
+    const newVal = !hideLikes;
+    setSavingHideLikes(true);
+    setHideLikes(newVal);
+    try {
+      const res = await api.patch("/users/profile", { hideLikes: newVal });
+      updateUser(res.data.user);
+    } catch (e) {
+      console.error(e);
+      setHideLikes(!newVal); // revert on error
+    } finally {
+      setSavingHideLikes(false);
+    }
+  };
+
   if (loading) return (
     <div className="flex justify-center items-center py-24">
       <div className="w-6 h-6 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
@@ -96,7 +146,12 @@ export default function ProfilePage() {
   );
 
   const initials = profile.fullName?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
-  const isVerified = profile.verified === true || me?.verified === true;
+  const isVerified = profile.verified === true;
+
+  // Follower/following counts
+  const followersCount = profile.followersCount ?? profile.followers?.length ?? 0;
+  const followingCount = profile.followingCount ?? profile.following?.length ?? 0;
+  const postsCount = profile.postsCount ?? 0;
 
   return (
     <div className="max-w-2xl mx-auto p-6">
@@ -121,14 +176,49 @@ export default function ProfilePage() {
               }
             </div>
             <div className="flex gap-2 mb-1">
-              {isMe
-                ? <button onClick={() => setEditing(v => !v)} className="btn-primary flex items-center gap-2 text-xs">
+              {isMe ? (
+                <>
+                  {/* Hide/show likes toggle — only visible to profile owner */}
+                  <button
+                    onClick={handleToggleHideLikes}
+                    disabled={savingHideLikes}
+                    title={hideLikes ? "Show likes count" : "Hide likes count"}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-50 ${
+                      hideLikes
+                        ? "border-gray-300 bg-gray-50 text-gray-500 hover:bg-gray-100"
+                        : "border-primary-200 bg-primary-50 text-primary-700 hover:bg-primary-100"
+                    }`}
+                  >
+                    {hideLikes
+                      ? <><EyeOff className="w-3.5 h-3.5" /> Likes hidden</>
+                      : <><Eye className="w-3.5 h-3.5" /> Likes visible</>
+                    }
+                  </button>
+                  <button onClick={() => setEditing(v => !v)} className="btn-primary flex items-center gap-2 text-xs">
                     <Edit3 className="w-3.5 h-3.5" /> Edit Profile
                   </button>
-                : <Link to={`/messages`} className="btn-primary flex items-center gap-2 text-xs">
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={handleFollow}
+                    disabled={followLoading}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors disabled:opacity-50 ${
+                      following
+                        ? "border-gray-300 bg-white text-gray-600 hover:bg-red-50 hover:text-red-500 hover:border-red-200"
+                        : "bg-primary-700 text-white border-primary-700 hover:bg-primary-800"
+                    }`}
+                  >
+                    {following
+                      ? <><UserMinus className="w-3.5 h-3.5" /> Following</>
+                      : <><UserPlus className="w-3.5 h-3.5" /> Follow</>
+                    }
+                  </button>
+                  <Link to={`/messages`} className="btn-primary flex items-center gap-2 text-xs">
                     <MessageSquare className="w-3.5 h-3.5" /> Message
                   </Link>
-              }
+                </>
+              )}
             </div>
           </div>
 
@@ -212,6 +302,24 @@ export default function ProfilePage() {
               <p className="text-sm text-gray-500 mt-0.5">@{profile.username}</p>
               {profile.department && <p className="text-sm text-primary-700 font-medium mt-1">{profile.department}</p>}
               {profile.bio && <p className="text-sm text-gray-600 mt-3 leading-relaxed">{profile.bio}</p>}
+
+              {/* ── Follower / Following / Posts stats ── */}
+              <div className="flex items-center gap-5 mt-4 pt-4 border-t border-gray-100">
+                <div className="text-center">
+                  <p className="text-base font-bold text-gray-800">{followersCount.toLocaleString()}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Followers</p>
+                </div>
+                <div className="w-px h-8 bg-gray-100" />
+                <div className="text-center">
+                  <p className="text-base font-bold text-gray-800">{followingCount.toLocaleString()}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Following</p>
+                </div>
+                <div className="w-px h-8 bg-gray-100" />
+                <div className="text-center">
+                  <p className="text-base font-bold text-gray-800">{postsCount.toLocaleString()}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Posts</p>
+                </div>
+              </div>
 
               {profile.skills?.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-4">

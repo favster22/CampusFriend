@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { BadgeCheck, Lock, Globe2, SunMedium, Settings as SettingsIcon, User as UserIcon } from "lucide-react";
+import { BadgeCheck, Lock, Globe2, SunMedium, Settings as SettingsIcon, User as UserIcon, Heart } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
 
@@ -11,12 +11,22 @@ export default function SettingsPage() {
   const [statement, setStatement] = useState("");
   const [requestMessage, setRequestMessage] = useState("");
   const [requestLoading, setRequestLoading] = useState(false);
-  const [privacy, setPrivacy] = useState({ privateAccount: false, showOnlineStatus: true });
+  const [privacy, setPrivacy] = useState({
+    privateAccount: user?.privateAccount || false,
+    showOnlineStatus: user?.showOnlineStatus !== false,
+    hideLikes: user?.hideLikes || false,
+  });
+  const [savingPrivacy, setSavingPrivacy] = useState({});
   const [accessibility, setAccessibility] = useState({ reducedMotion: false, highContrast: false });
 
   useEffect(() => {
     if (user) {
       setUsername(user.username || "");
+      setPrivacy({
+        privateAccount: user.privateAccount || false,
+        showOnlineStatus: user.showOnlineStatus !== false,
+        hideLikes: user.hideLikes || false,
+      });
     }
   }, [user]);
 
@@ -29,10 +39,8 @@ export default function SettingsPage() {
       setUsernameMessage("Your username is already up to date.");
       return;
     }
-
     setSavingUsername(true);
     setUsernameMessage("");
-
     try {
       const res = await api.patch("/users/profile", { username: username.trim() });
       updateUser(res.data.user);
@@ -43,6 +51,26 @@ export default function SettingsPage() {
     } finally {
       setSavingUsername(false);
     }
+  };
+
+  const handleTogglePrivacy = async (field) => {
+    const newVal = !privacy[field];
+    setPrivacy((prev) => ({ ...prev, [field]: newVal }));
+    setSavingPrivacy((prev) => ({ ...prev, [field]: true }));
+    try {
+      const res = await api.patch("/users/profile", { [field]: newVal });
+      updateUser(res.data.user);
+    } catch (error) {
+      // Revert on error
+      setPrivacy((prev) => ({ ...prev, [field]: !newVal }));
+      console.error(error);
+    } finally {
+      setSavingPrivacy((prev) => ({ ...prev, [field]: false }));
+    }
+  };
+
+  const toggleAccessibility = (field) => {
+    setAccessibility((prev) => ({ ...prev, [field]: !prev[field] }));
   };
 
   const handleRequestVerification = async () => {
@@ -67,13 +95,26 @@ export default function SettingsPage() {
     }
   };
 
-  const togglePrivacy = (field) => {
-    setPrivacy((prev) => ({ ...prev, [field]: !prev[field] }));
-  };
-
-  const toggleAccessibility = (field) => {
-    setAccessibility((prev) => ({ ...prev, [field]: !prev[field] }));
-  };
+  const ToggleButton = ({ field, label, description, saving }) => (
+    <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 p-4">
+      <div>
+        <p className="font-medium text-gray-900">{label}</p>
+        <p className="text-sm text-gray-500">{description}</p>
+      </div>
+      <button
+        type="button"
+        onClick={() => handleTogglePrivacy(field)}
+        disabled={saving}
+        className={`rounded-full px-3 py-1 text-sm font-semibold transition-colors disabled:opacity-60 ${
+          privacy[field]
+            ? "bg-primary-700 text-white"
+            : "bg-white text-gray-700 border border-gray-200"
+        }`}
+      >
+        {saving ? "…" : privacy[field] ? "Enabled" : "Disabled"}
+      </button>
+    </div>
+  );
 
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-6">
@@ -87,6 +128,7 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Account */}
       <section className="bg-white rounded-3xl shadow-card p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-2xl bg-primary-50 text-primary-700 flex items-center justify-center">
@@ -123,6 +165,7 @@ export default function SettingsPage() {
         {usernameMessage && <p className="mt-3 text-sm text-gray-600">{usernameMessage}</p>}
       </section>
 
+      {/* Privacy & Safety */}
       <section className="bg-white rounded-3xl shadow-card p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center">
@@ -135,35 +178,51 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-3">
+          <ToggleButton
+            field="privateAccount"
+            label="Private account"
+            description="Only approved users can follow or see certain details."
+            saving={savingPrivacy.privateAccount}
+          />
+          <ToggleButton
+            field="showOnlineStatus"
+            label="Show online status"
+            description="Allow people to see when you are active."
+            saving={savingPrivacy.showOnlineStatus}
+          />
+
+          {/* Hide likes count — special card with Heart icon */}
           <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <div>
-              <p className="font-medium text-gray-900">Private account</p>
-              <p className="text-sm text-gray-500">Only approved users can follow or see certain details.</p>
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-red-50 text-red-400 flex items-center justify-center shrink-0 mt-0.5">
+                <Heart className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">Hide likes count</p>
+                <p className="text-sm text-gray-500">
+                  {privacy.hideLikes
+                    ? "Like counts are hidden on your posts. Only you can see them."
+                    : "Like counts are visible to everyone on your posts."}
+                </p>
+              </div>
             </div>
             <button
               type="button"
-              onClick={() => togglePrivacy("privateAccount")}
-              className={`rounded-full px-3 py-1 text-sm font-semibold ${privacy.privateAccount ? "bg-primary-700 text-white" : "bg-white text-gray-700 border border-gray-200"}`}
+              onClick={() => handleTogglePrivacy("hideLikes")}
+              disabled={savingPrivacy.hideLikes}
+              className={`ml-4 rounded-full px-3 py-1 text-sm font-semibold transition-colors disabled:opacity-60 whitespace-nowrap ${
+                privacy.hideLikes
+                  ? "bg-primary-700 text-white"
+                  : "bg-white text-gray-700 border border-gray-200"
+              }`}
             >
-              {privacy.privateAccount ? "Enabled" : "Disabled"}
-            </button>
-          </div>
-          <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <div>
-              <p className="font-medium text-gray-900">Show online status</p>
-              <p className="text-sm text-gray-500">Allow people to see when you are active.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => togglePrivacy("showOnlineStatus")}
-              className={`rounded-full px-3 py-1 text-sm font-semibold ${privacy.showOnlineStatus ? "bg-primary-700 text-white" : "bg-white text-gray-700 border border-gray-200"}`}
-            >
-              {privacy.showOnlineStatus ? "On" : "Off"}
+              {savingPrivacy.hideLikes ? "…" : privacy.hideLikes ? "Hidden" : "Visible"}
             </button>
           </div>
         </div>
       </section>
 
+      {/* Accessibility */}
       <section className="bg-white rounded-3xl shadow-card p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-2xl bg-green-50 text-green-700 flex items-center justify-center">
@@ -176,35 +235,28 @@ export default function SettingsPage() {
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <div>
-              <p className="font-medium text-gray-900">Reduced motion</p>
-              <p className="text-sm text-gray-500">Minimize animations across the interface.</p>
+          {[
+            { field: "reducedMotion", label: "Reduced motion", desc: "Minimize animations across the interface." },
+            { field: "highContrast", label: "High contrast", desc: "Make interfaces easier to read." },
+          ].map(({ field, label, desc }) => (
+            <div key={field} className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <div>
+                <p className="font-medium text-gray-900">{label}</p>
+                <p className="text-sm text-gray-500">{desc}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => toggleAccessibility(field)}
+                className={`rounded-full px-3 py-1 text-sm font-semibold ${accessibility[field] ? "bg-primary-700 text-white" : "bg-white text-gray-700 border border-gray-200"}`}
+              >
+                {accessibility[field] ? "On" : "Off"}
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => toggleAccessibility("reducedMotion")}
-              className={`rounded-full px-3 py-1 text-sm font-semibold ${accessibility.reducedMotion ? "bg-primary-700 text-white" : "bg-white text-gray-700 border border-gray-200"}`}
-            >
-              {accessibility.reducedMotion ? "On" : "Off"}
-            </button>
-          </div>
-          <div className="flex items-center justify-between rounded-2xl border border-gray-200 bg-gray-50 p-4">
-            <div>
-              <p className="font-medium text-gray-900">High contrast</p>
-              <p className="text-sm text-gray-500">Make interfaces easier to read.</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => toggleAccessibility("highContrast")}
-              className={`rounded-full px-3 py-1 text-sm font-semibold ${accessibility.highContrast ? "bg-primary-700 text-white" : "bg-white text-gray-700 border border-gray-200"}`}
-            >
-              {accessibility.highContrast ? "On" : "Off"}
-            </button>
-          </div>
+          ))}
         </div>
       </section>
 
+      {/* Verification */}
       <section className="bg-white rounded-3xl shadow-card p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center">

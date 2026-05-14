@@ -195,7 +195,7 @@ export default function ProfilePage() {
             <>
               <div className="flex items-center gap-2">
                 <h1 className="font-display font-bold text-xl text-gray-800">{profile.fullName}</h1>
-                {console.log("verified:", profile.verified)}
+                {console.log("profile.verified:", profile?.verified)}
                 {profile.verified === true && (
                   <BadgeCheck className="w-5 h-5 fill-blue-500 text-white" />
                 )}

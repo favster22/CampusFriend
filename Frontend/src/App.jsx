@@ -3,9 +3,10 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import AdminPanel from "./pages/AdminPanel";
 
-import LoginPage    from "./pages/LoginPage";
-import RegisterPage from "./pages/RegisterPage";
-import Layout       from "./components/Layout";
+import LoginPage       from "./pages/LoginPage";
+import RegisterPage    from "./pages/RegisterPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import Layout          from "./components/Layout";
 import DashboardPage   from "./pages/Dashboard";
 import MessagesPage    from "./pages/MessagesPage";
 import CommunitiesPage from "./pages/CommunitiesPage";
@@ -40,6 +41,7 @@ export default function App() {
         <Routes>
           <Route path="/login"    element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+          <Route path="/reset-password/:token" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
 
           <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
             <Route index element={<Navigate to="/dashboard" replace />} />

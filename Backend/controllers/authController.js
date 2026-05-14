@@ -159,7 +159,7 @@ const getMe = async (req, res) => {
   }
 };
 
-module.exports = { register, login, logout, getMe };
+module.exports = { register, login, logout, getMe, forgotPassword, resetPassword };
 
 // ─── Email transporter (Gmail) ────────────────────────────────────────────────
 const transporter = nodemailer.createTransport({

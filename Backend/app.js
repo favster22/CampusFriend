@@ -12,6 +12,7 @@ const userRoutes = require("./routes/userRoutes");
 const messageRoutes = require("./routes/messageRoutes");
 const communityRoutes = require("./routes/communityRoutes");
 const feedRoutes = require("./routes/feedRoutes");
+const adminRoutes = require("./routes/admin");
 
 const { protect } = require("./middleware/authMiddleware");
 
@@ -56,6 +57,7 @@ app.use("/api/users", protect, userRoutes);
 app.use("/api/messages", protect, messageRoutes);
 app.use("/api/communities", protect, communityRoutes);
 app.use("/api/feed", protect, feedRoutes);
+app.use("/api/admin", protect, adminRoutes);
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });

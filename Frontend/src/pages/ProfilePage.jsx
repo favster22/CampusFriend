@@ -195,8 +195,8 @@ export default function ProfilePage() {
             <>
               <div className="flex items-center gap-2">
                 <h1 className="font-display font-bold text-xl text-gray-800">{profile.fullName}</h1>
-                {profile.verificationApplication?.status === "verified" && (
-                  <BadgeCheck className="w-5 h-5 fill-blue-500 text-white"  />
+                {profile.verified === true && (
+                  <BadgeCheck classname="w-5 h-5 fill-blue-500 text-white" />
                 )}
               </div>
               <p className="text-sm text-gray-500 mt-0.5">@{profile.username}</p>

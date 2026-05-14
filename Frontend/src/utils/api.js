@@ -1,18 +1,21 @@
 import axios from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL 
-  ? `${import.meta.env.VITE_API_URL}/api`
-  : "/api";
+const API_URL = import.meta.env.VITE_API_URL; // e.g., ...onrender.com/api
+// Your request should end up being: ${API_URL}/auth/register
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "",
+  baseURL: API_URL,  // This adds the missing /api
   withCredentials: true,
 });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("cf_token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token) { 
+    config.headers.Authorization = `Bearer ${token}`;
+  } 
   return config;
+}, (error) => {
+  return Promise.reject(error);
 });
 
 api.interceptors.response.use(

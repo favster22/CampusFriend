@@ -397,7 +397,7 @@ export default function MessagesPage() {
         <div className="flex items-center gap-2 mt-3">
           <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-xs font-semibold text-primary-700">SC</div>
           <div>
-            <p className="text-xs font-semibold text-gray-800">Sarah Chen</p>
+            <p className="text-xs font-semibold text-gray-800">Boampong Jesse</p>
             <p className="text-xs text-gray-400">Campus friend</p>
           </div>
         </div>

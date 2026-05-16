@@ -1,264 +1,286 @@
-const User = require("../models/User");
+const User         = require("../models/User");
+const Notification = require("../models/Notification");
+const FeedPost     = require("../models/FeedPost");
 
-// @desc    Get user profile by username
-// @route   GET /api/users/:username
-// @access  Private
+// ── GET /api/users/:username ─────────────────────────────────────────────────
 const getUserProfile = async (req, res) => {
   try {
-    const user = await User.findOne({
-      username: req.params.username.toLowerCase(),
-    }).populate("communities", "name slug avatar category memberCount");
+    const user = await User.findOne({ username: req.params.username.toLowerCase() })
+      .populate("communities", "name slug avatar category");
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
+    const postsCount = await FeedPost.countDocuments({ author: user._id, isDeleted: false });
 
-    res.json({ success: true, user });
-  } catch (error) {
+    res.json({ success: true, user: { ...user.toJSON(), postsCount } });
+  } catch (e) {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// @desc    Update current user's profile
-// @route   PATCH /api/users/profile
-// @access  Private
+// ── PATCH /api/users/profile ─────────────────────────────────────────────────
 const updateProfile = async (req, res) => {
   try {
-    const { username, fullName, bio, department, skills, socialLinks, avatar, header } = req.body;
+    const {
+      username, fullName, bio, department, skills, socialLinks,
+      avatar, header,
+      privateAccount, hideFollowing, showOnlineStatus, hideLikes,
+      notificationPrefs,
+    } = req.body;
 
     const updates = {};
-    if (username && username.trim().toLowerCase() !== req.user.username) {
-      const existingUser = await User.findOne({ username: username.trim().toLowerCase() });
-      if (existingUser && existingUser._id.toString() !== req.user._id.toString()) {
-        return res.status(400).json({ success: false, message: "Username is already taken" });
+    if (username) {
+      const lower = username.trim().toLowerCase();
+      if (lower !== req.user.username) {
+        const exists = await User.findOne({ username: lower });
+        if (exists && exists._id.toString() !== req.user._id.toString())
+          return res.status(400).json({ success: false, message: "Username already taken" });
+        updates.username = lower;
       }
-      updates.username = username.trim().toLowerCase();
     }
-    if (fullName) updates.fullName = fullName.trim();
-    if (bio !== undefined) updates.bio = bio.trim();
+    if (fullName)              updates.fullName   = fullName.trim();
+    if (bio      !== undefined) updates.bio        = bio.trim();
     if (department !== undefined) updates.department = department.trim();
-    if (skills) updates.skills = skills;
-    if (socialLinks) updates.socialLinks = socialLinks;
-    if (avatar !== undefined) updates.avatar = avatar;
-    if (header !== undefined) updates.header = header;
+    if (skills)                updates.skills     = skills;
+    if (socialLinks)           updates.socialLinks = socialLinks;
+    if (avatar   !== undefined) updates.avatar     = avatar;
+    if (header   !== undefined) updates.header     = header;
+    if (privateAccount  !== undefined) updates.privateAccount  = privateAccount;
+    if (hideFollowing   !== undefined) updates.hideFollowing   = hideFollowing;
+    if (showOnlineStatus !== undefined) updates.showOnlineStatus = showOnlineStatus;
+    if (hideLikes       !== undefined) updates.hideLikes       = hideLikes;
+    if (notificationPrefs) updates.notificationPrefs = { ...req.user.notificationPrefs, ...notificationPrefs };
 
     const user = await User.findByIdAndUpdate(req.user._id, updates, {
-      new: true,
-      runValidators: true,
+      new: true, runValidators: true,
     }).populate("communities", "name slug avatar");
 
     res.json({ success: true, user });
-  } catch (error) {
-    console.error("Update profile error:", error);
+  } catch (e) {
+    console.error("updateProfile:", e);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// @desc    Search for students
-// @route   GET /api/users/search
-// @access  Private
+// ── PATCH /api/users/:username/follow ────────────────────────────────────────
+const toggleFollow = async (req, res) => {
+  try {
+    const target = await User.findOne({ username: req.params.username.toLowerCase() });
+    if (!target) return res.status(404).json({ success: false, message: "User not found" });
+    if (target._id.toString() === req.user._id.toString())
+      return res.status(400).json({ success: false, message: "Cannot follow yourself" });
+
+    const isFollowing = target.followers.includes(req.user._id);
+
+    if (isFollowing) {
+      // Unfollow
+      await User.findByIdAndUpdate(target._id, {
+        $pull:  { followers: req.user._id },
+        $inc:   { followersCount: -1 },
+      });
+      await User.findByIdAndUpdate(req.user._id, {
+        $pull: { following: target._id },
+        $inc:  { followingCount: -1 },
+      });
+    } else {
+      // Follow
+      await User.findByIdAndUpdate(target._id, {
+        $addToSet: { followers: req.user._id },
+        $inc:      { followersCount: 1 },
+      });
+      await User.findByIdAndUpdate(req.user._id, {
+        $addToSet: { following: target._id },
+        $inc:      { followingCount: 1 },
+      });
+      // Notify target if they have newFollower pref on
+      if (target.notificationPrefs?.newFollower !== false) {
+        await Notification.create({
+          recipient: target._id,
+          sender:    req.user._id,
+          type:      "follow",
+          message:   `${req.user.fullName} started following you`,
+        });
+      }
+    }
+
+    res.json({ success: true, following: !isFollowing });
+  } catch (e) {
+    console.error("toggleFollow:", e);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// ── GET /api/users/:username/followers ───────────────────────────────────────
+const getFollowers = async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username.toLowerCase() })
+      .populate("followers", "fullName username avatar department verified isOnline");
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+    res.json({ success: true, followers: user.followers });
+  } catch (e) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// ── GET /api/users/:username/following ───────────────────────────────────────
+const getFollowing = async (req, res) => {
+  try {
+    const user = await User.findOne({ username: req.params.username.toLowerCase() })
+      .populate("following", "fullName username avatar department verified isOnline");
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    // Respect hideFollowing privacy (except the owner themselves)
+    if (user.hideFollowing && req.user._id.toString() !== user._id.toString()) {
+      return res.json({ success: true, following: [], hidden: true });
+    }
+    res.json({ success: true, following: user.following });
+  } catch (e) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// ── GET /api/users/search?q= ─────────────────────────────────────────────────
 const searchUsers = async (req, res) => {
   try {
     const { q, page = 1, limit = 20 } = req.query;
-
-    if (!q || q.trim().length < 2) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Search query must be at least 2 characters" });
-    }
+    if (!q || q.trim().length < 2)
+      return res.status(400).json({ success: false, message: "Min 2 characters" });
 
     const users = await User.find({
       _id: { $ne: req.user._id },
       $or: [
-        { fullName: { $regex: q, $options: "i" } },
-        { username: { $regex: q, $options: "i" } },
+        { fullName:   { $regex: q, $options: "i" } },
+        { username:   { $regex: q, $options: "i" } },
         { department: { $regex: q, $options: "i" } },
-        { skills: { $in: [new RegExp(q, "i")] } },
+        { skills:     { $in: [new RegExp(q, "i")] } },
       ],
     })
-      .select("fullName username avatar department skills isOnline lastSeen")
+      .select("fullName username avatar department skills isOnline lastSeen verified followersCount")
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit));
 
     res.json({ success: true, users });
-  } catch (error) {
+  } catch (e) {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// @desc    Change password
-// @route   PATCH /api/users/change-password
-// @access  Private
+// ── PATCH /api/users/change-password ────────────────────────────────────────
 const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Please provide current and new password" });
-    }
-
-    if (newPassword.length < 6) {
-      return res
-        .status(400)
-        .json({ success: false, message: "New password must be at least 6 characters" });
-    }
+    if (!currentPassword || !newPassword)
+      return res.status(400).json({ success: false, message: "Both fields required" });
+    if (newPassword.length < 6)
+      return res.status(400).json({ success: false, message: "Min 6 characters" });
 
     const user = await User.findById(req.user._id).select("+password");
-    if (!(await user.matchPassword(currentPassword))) {
-      return res
-        .status(401)
-        .json({ success: false, message: "Current password is incorrect" });
-    }
+    if (!(await user.matchPassword(currentPassword)))
+      return res.status(401).json({ success: false, message: "Wrong current password" });
 
     user.password = newPassword;
     await user.save();
-
-    res.json({ success: true, message: "Password changed successfully" });
-  } catch (error) {
+    res.json({ success: true, message: "Password changed" });
+  } catch (e) {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// @desc    Submit verification application
-// @route   POST /api/users/verification
-// @access  Private
-const submitVerificationApplication = async (req, res) => {
+// ── POST /api/users/upload ───────────────────────────────────────────────────
+const uploadImage = async (req, res) => {
   try {
-    const { statement = "" } = req.body;
-
-    if (req.user.verified) {
-      return res.status(400).json({ success: false, message: "Your account is already verified." });
-    }
-
-    if (req.user.verificationApplication?.status === "pending") {
-      return res.status(400).json({ success: false, message: "A verification application is already pending." });
-    }
-
-    const user = await User.findByIdAndUpdate(
-      req.user._id,
-      {
-        verificationApplication: {
-          status: "pending",
-          statement: statement.trim(),
-          submittedAt: new Date(),
-          reviewedAt: null,
-          reviewer: "",
-          reviewNotes: "",
-        },
-      },
-      { new: true, runValidators: true }
-    );
-
-    res.json({ success: true, user });
-  } catch (error) {
-    console.error("Verification application error:", error);
-    res.status(500).json({ success: false, message: "Server error submitting verification application" });
+    if (!req.file) return res.status(400).json({ success: false, message: "No image" });
+    const imageUrl = `/uploads/${req.file.filename}`;
+    res.json({ success: true, imageUrl });
+  } catch (e) {
+    res.status(500).json({ success: false, message: "Upload error" });
   }
 };
 
-// @desc    Get pending verification applications (admin only)
-// @route   GET /api/users/verification/pending
-// @access  Private/Admin
+// ── POST /api/users/verification ─────────────────────────────────────────────
+const submitVerificationApplication = async (req, res) => {
+  try {
+    const { statement = "" } = req.body;
+    if (req.user.verified)
+      return res.status(400).json({ success: false, message: "Already verified" });
+    if (req.user.verificationApplication?.status === "pending")
+      return res.status(400).json({ success: false, message: "Application already pending" });
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { verificationApplication: { status: "pending", statement: statement.trim(), submittedAt: new Date() } },
+      { new: true }
+    );
+    res.json({ success: true, user });
+  } catch (e) {
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// ── GET /api/users/verification/pending (admin) ───────────────────────────────
 const getPendingVerificationApplications = async (req, res) => {
   try {
     const users = await User.find({ "verificationApplication.status": "pending" })
       .select("fullName username email avatar department verificationApplication verified");
-
     res.json({ success: true, applications: users });
-  } catch (error) {
-    console.error("Get pending verification applications error:", error);
+  } catch (e) {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// @desc    Approve verification application
-// @route   PATCH /api/users/verification/:userId/approve
-// @access  Private/Admin
+// ── PATCH /api/users/verification/:userId/approve (admin) ─────────────────────
 const approveVerification = async (req, res) => {
   try {
-    const targetUser = await User.findById(req.params.userId);
-    if (!targetUser) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
-
     const user = await User.findByIdAndUpdate(
       req.params.userId,
-      {
-        verified: true,
-        verificationApplication: {
-          ...targetUser.verificationApplication.toObject(),
-          status: "approved",
-          reviewedAt: new Date(),
-          reviewer: req.user.username || req.user._id.toString(),
-          reviewNotes: req.body.reviewNotes?.trim() || "",
-        },
-      },
-      { new: true, runValidators: true }
+      { verified: true, "verificationApplication.status": "approved", "verificationApplication.reviewedAt": new Date() },
+      { new: true }
     );
-
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
     res.json({ success: true, user });
-  } catch (error) {
-    console.error("Approve verification error:", error);
-    res.status(500).json({ success: false, message: "Server error approving verification" });
+  } catch (e) {
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// @desc    Reject verification application
-// @route   PATCH /api/users/verification/:userId/reject
-// @access  Private/Admin
+// ── PATCH /api/users/verification/:userId/reject (admin) ──────────────────────
 const rejectVerification = async (req, res) => {
   try {
-    const targetUser = await User.findById(req.params.userId);
-    if (!targetUser) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
-
     const user = await User.findByIdAndUpdate(
       req.params.userId,
-      {
-        verified: false,
-        verificationApplication: {
-          ...targetUser.verificationApplication.toObject(),
-          status: "rejected",
-          reviewedAt: new Date(),
-          reviewer: req.user.username || req.user._id.toString(),
-          reviewNotes: req.body.reviewNotes?.trim() || "",
-        },
-      },
-      { new: true, runValidators: true }
+      { verified: false, "verificationApplication.status": "rejected", "verificationApplication.reviewedAt": new Date() },
+      { new: true }
     );
-
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
     res.json({ success: true, user });
-  } catch (error) {
-    console.error("Reject verification error:", error);
-    res.status(500).json({ success: false, message: "Server error rejecting verification" });
+  } catch (e) {
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-const uploadImage = async (req, res) => {
+// ── PATCH /api/users/:username/notify ────────────────────────────────────────
+const toggleUserNotification = async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: "No image uploaded" });
-    }
+    const target = await User.findOne({ username: req.params.username.toLowerCase() });
+    if (!target) return res.status(404).json({ success: false, message: "User not found" });
 
-    const imageUrl = `/uploads/${req.file.filename}`;
-    res.json({ success: true, imageUrl });
-  } catch (error) {
-    console.error("Upload image error:", error);
-    res.status(500).json({ success: false, message: "Server error uploading image" });
+    const me = await User.findById(req.user._id);
+    const isOn = me.notifyUsers.includes(target._id);
+
+    await User.findByIdAndUpdate(req.user._id, isOn
+      ? { $pull:    { notifyUsers: target._id } }
+      : { $addToSet:{ notifyUsers: target._id } }
+    );
+
+    res.json({ success: true, notifying: !isOn });
+  } catch (e) {
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
 module.exports = {
-  getUserProfile,
-  updateProfile,
-  searchUsers,
-  changePassword,
-  uploadImage,
-  submitVerificationApplication,
-  getPendingVerificationApplications,
-  approveVerification,
-  rejectVerification,
+  getUserProfile, updateProfile, searchUsers, changePassword, uploadImage,
+  toggleFollow, getFollowers, getFollowing,
+  submitVerificationApplication, getPendingVerificationApplications,
+  approveVerification, rejectVerification,
+  toggleUserNotification,
 };

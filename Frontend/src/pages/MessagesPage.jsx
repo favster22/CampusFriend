@@ -364,44 +364,6 @@ export default function MessagesPage() {
         </div>
       )}
 
-      {/* ── Community Spotlight ── */}
-      <div className="w-64 border-l border-gray-100 bg-white p-4 hidden xl:block overflow-y-auto shrink-0">
-        <h3 className="font-display font-bold text-sm text-gray-800 mb-4">Community Spotlight</h3>
-
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Upcoming events</p>
-        {upcomingEvents.map((ev, i) => (
-          <div key={i} className="flex gap-3 mb-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg shrink-0 flex items-center justify-center">
-              <span className="text-xs font-bold text-blue-600">Ps</span>
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-gray-800 leading-tight">{ev.title}</p>
-              <p className="text-xs text-gray-400 mt-0.5 leading-snug">{ev.date}</p>
-            </div>
-          </div>
-        ))}
-
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-4 mb-2">Popular posts</p>
-        {popularPosts.map((p, i) => (
-          <div key={i} className="mb-3">
-            <p className="text-xs font-semibold text-gray-800">{p.title}</p>
-            <p className="text-xs text-gray-500 mt-0.5 leading-snug line-clamp-2">{p.desc}</p>
-          </div>
-        ))}
-
-        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mt-4 mb-2">Popular from circles</p>
-        <div className="mb-3">
-          <p className="text-xs font-semibold text-gray-800">Exam Tips Thread</p>
-          <p className="text-xs text-gray-500 mt-0.5 leading-snug line-clamp-2">The exam tips thread on the interactive feed and resource sharing in circles</p>
-        </div>
-        <div className="flex items-center gap-2 mt-3">
-          <div className="w-7 h-7 rounded-full bg-primary-100 flex items-center justify-center text-xs font-semibold text-primary-700">SC</div>
-          <div>
-            <p className="text-xs font-semibold text-gray-800">Boampong Jesse</p>
-            <p className="text-xs text-gray-400">Campus friend</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

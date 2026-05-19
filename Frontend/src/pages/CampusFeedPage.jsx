@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
-  BadgeCheck, Heart, MessageCircle, Share2, Bookmark, Plus, X,
-  Image as ImageIcon, Video, Smile, ChevronDown, Repeat2,
+  BadgeCheck, Heart, MessageCircle, Repeat2, Bookmark,
+  Image as ImageIcon, X, Plus,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
@@ -10,22 +10,19 @@ import { formatDistanceToNow } from "date-fns";
 /* ─── Stories Bar ──────────────────────────────────────────────────────────── */
 function StoriesBar() {
   const { user } = useAuth();
-  const [groups, setGroups]       = useState([]);
+  const [groups,      setGroups]      = useState([]);
   const [showCompose, setShowCompose] = useState(false);
-  const [storyText, setStoryText] = useState("");
-  const [storyBg,   setStoryBg]   = useState("#0f6485");
-  const [mediaUrl,  setMediaUrl]  = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [active,    setActive]    = useState(null); // { group, storyIndex }
+  const [storyText,   setStoryText]   = useState("");
+  const [storyBg,     setStoryBg]     = useState("#0f6485");
+  const [mediaUrl,    setMediaUrl]    = useState("");
+  const [uploading,   setUploading]   = useState(false);
+  const [active,      setActive]      = useState(null);
   const fileRef = useRef(null);
-
   const BG_COLORS = ["#0f6485","#7c3aed","#db2777","#d97706","#16a34a","#dc2626","#0891b2","#1d4ed8"];
 
   const load = useCallback(async () => {
-    try {
-      const res = await api.get("/stories");
-      setGroups(res.data.groups || []);
-    } catch (e) { console.error(e); }
+    try { const r = await api.get("/stories"); setGroups(r.data.groups || []); }
+    catch (e) { console.error(e); }
   }, []);
 
   useEffect(() => { load(); }, [load]);
@@ -33,70 +30,48 @@ function StoriesBar() {
   const handleUpload = async (file) => {
     setUploading(true);
     try {
-      const data = new FormData();
-      data.append("image", file);
-      const res = await api.post("/users/upload", data, { headers: { "Content-Type": "multipart/form-data" } });
-      setMediaUrl(res.data.imageUrl);
-    } catch (e) { console.error(e); }
-    finally { setUploading(false); }
+      const d = new FormData(); d.append("image", file);
+      const r = await api.post("/users/upload", d, { headers: { "Content-Type": "multipart/form-data" } });
+      setMediaUrl(r.data.imageUrl);
+    } catch (e) { console.error(e); } finally { setUploading(false); }
   };
 
   const handleCreate = async () => {
     if (!storyText.trim() && !mediaUrl) return;
     try {
-      await api.post("/stories", {
-        text: storyText.trim(),
-        bgColor: storyBg,
-        mediaUrl,
-        mediaType: mediaUrl ? "image" : "text",
-      });
-      setShowCompose(false);
-      setStoryText(""); setMediaUrl(""); setStoryBg("#0f6485");
+      await api.post("/stories", { text: storyText.trim(), bgColor: storyBg, mediaUrl, mediaType: mediaUrl ? "image" : "text" });
+      setShowCompose(false); setStoryText(""); setMediaUrl(""); setStoryBg("#0f6485");
       load();
     } catch (e) { console.error(e); }
   };
 
-  const openStory = async (group, idx) => {
-    setActive({ group, idx });
-    try { await api.patch(`/stories/${group.stories[idx]._id}/view`); } catch(e){}
-  };
-
-  const initials = (u) => u?.fullName?.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase() || "?";
+  const ini = (u) => u?.fullName?.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase() || "?";
 
   return (
     <>
-      {/* Horizontal scroll stories strip */}
-      <div className="flex items-center gap-3 overflow-x-auto py-3 px-1 scrollbar-none">
-        {/* Add story button */}
-        <button onClick={() => setShowCompose(true)}
-          className="flex flex-col items-center gap-1 shrink-0">
-          <div className="w-14 h-14 rounded-full bg-white border-2 border-dashed border-primary-300 flex items-center justify-center text-primary-500 hover:border-primary-500 transition-colors relative overflow-hidden">
-            {user?.avatar
-              ? <img src={user.avatar} alt="" className="w-full h-full object-cover opacity-50" />
-              : <span className="text-lg font-bold text-primary-300">{initials(user)}</span>}
+      <div className="flex items-center gap-3 overflow-x-auto py-3 px-1 scrollbar-none mb-1">
+        <button onClick={() => setShowCompose(true)} className="flex flex-col items-center gap-1 shrink-0">
+          <div className="w-14 h-14 rounded-full bg-white border-2 border-dashed border-primary-300 flex items-center justify-center relative overflow-hidden">
+            {user?.avatar ? <img src={user.avatar} alt="" className="w-full h-full object-cover opacity-50" />
+              : <span className="text-sm font-bold text-primary-300">{ini(user)}</span>}
             <div className="absolute bottom-0 right-0 w-5 h-5 bg-primary-700 rounded-full flex items-center justify-center">
               <Plus className="w-3 h-3 text-white" />
             </div>
           </div>
           <span className="text-xs text-gray-500 max-w-[56px] truncate">Your story</span>
         </button>
-
-        {/* Story groups */}
-        {groups.map((group, gi) => {
-          const hasUnread = group.stories.some(s => !s.viewers?.includes(user._id));
+        {groups.map((g, i) => {
+          const hasNew = g.stories.some(s => !s.viewers?.includes(user._id));
           return (
-            <button key={gi} onClick={() => openStory(group, 0)}
-              className="flex flex-col items-center gap-1 shrink-0">
-              <div className={`w-14 h-14 rounded-full p-0.5 ${hasUnread ? "bg-gradient-to-tr from-primary-500 to-accent" : "bg-gray-200"}`}>
+            <button key={i} onClick={() => setActive({ group: g, idx: 0 })} className="flex flex-col items-center gap-1 shrink-0">
+              <div className={`w-14 h-14 rounded-full p-0.5 ${hasNew ? "bg-gradient-to-tr from-primary-500 to-accent" : "bg-gray-200"}`}>
                 <div className="w-full h-full rounded-full bg-white p-0.5 overflow-hidden">
-                  {group.author.avatar
-                    ? <img src={group.author.avatar} alt="" className="w-full h-full rounded-full object-cover" />
-                    : <div className="w-full h-full rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-sm">
-                        {initials(group.author)}
-                      </div>}
+                  {g.author.avatar
+                    ? <img src={g.author.avatar} alt="" className="w-full h-full rounded-full object-cover" />
+                    : <div className="w-full h-full rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-xs">{ini(g.author)}</div>}
                 </div>
               </div>
-              <span className="text-xs text-gray-500 max-w-[56px] truncate">{group.author.fullName?.split(" ")[0]}</span>
+              <span className="text-xs text-gray-500 max-w-[56px] truncate">{g.author.fullName?.split(" ")[0]}</span>
             </button>
           );
         })}
@@ -106,57 +81,42 @@ function StoriesBar() {
       {showCompose && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl overflow-hidden">
-            {/* Preview */}
-            <div className="relative h-48 flex items-center justify-center rounded-t-2xl overflow-hidden"
+            <div className="relative h-44 flex items-center justify-center"
               style={{ background: mediaUrl ? "black" : storyBg }}>
               {mediaUrl
                 ? <img src={mediaUrl} alt="" className="w-full h-full object-cover" />
-                : <p className="text-white text-lg font-medium text-center px-4 leading-relaxed">{storyText || "Your story text…"}</p>}
+                : <p className="text-white text-lg font-medium text-center px-6">{storyText || "Your story text…"}</p>}
               <button onClick={() => setShowCompose(false)}
                 className="absolute top-2 right-2 w-7 h-7 bg-black/40 rounded-full flex items-center justify-center text-white">
                 <X className="w-4 h-4" />
               </button>
             </div>
-
             <div className="p-4 space-y-3">
               {!mediaUrl && (
                 <textarea value={storyText} onChange={e => setStoryText(e.target.value)}
-                  placeholder="What's your story?" rows={2}
-                  className="input-base resize-none text-sm" />
+                  placeholder="What's your story?" rows={2} className="input-base resize-none text-sm" />
               )}
-
-              {/* BG color picker */}
               {!mediaUrl && (
                 <div className="flex gap-1.5 flex-wrap">
                   {BG_COLORS.map(c => (
-                    <button key={c} onClick={() => setStoryBg(c)}
-                      style={{ background: c }}
-                      className={`w-6 h-6 rounded-full transition-transform ${storyBg === c ? "scale-125 ring-2 ring-offset-1 ring-gray-400" : ""}`} />
+                    <button key={c} onClick={() => setStoryBg(c)} style={{ background: c }}
+                      className={`w-6 h-6 rounded-full ${storyBg === c ? "ring-2 ring-offset-1 ring-gray-500 scale-110" : ""}`} />
                   ))}
                 </div>
               )}
-
-              {/* Upload image */}
               <div className="flex gap-2">
                 <input ref={fileRef} type="file" accept="image/*" className="hidden"
                   onChange={e => handleUpload(e.target.files[0])} />
                 <button onClick={() => fileRef.current.click()}
-                  className="flex-1 flex items-center justify-center gap-2 py-2 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-primary-400 hover:text-primary-600 transition-colors">
-                  {uploading ? <div className="w-4 h-4 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
+                  className="flex-1 flex items-center justify-center gap-2 py-2 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:border-primary-400 transition-colors">
+                  {uploading
+                    ? <div className="w-4 h-4 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
                     : <><ImageIcon className="w-4 h-4" /> Add photo</>}
                 </button>
-                {mediaUrl && (
-                  <button onClick={() => setMediaUrl("")}
-                    className="px-3 py-2 border border-gray-200 rounded-xl text-sm text-red-400 hover:bg-red-50">
-                    Remove
-                  </button>
-                )}
+                {mediaUrl && <button onClick={() => setMediaUrl("")} className="px-3 text-sm text-red-400 border border-gray-200 rounded-xl">Remove</button>}
               </div>
-
               <button onClick={handleCreate} disabled={!storyText.trim() && !mediaUrl}
-                className="w-full btn-primary py-2.5 disabled:opacity-50">
-                Share Story
-              </button>
+                className="w-full btn-primary py-2.5 disabled:opacity-50">Share Story</button>
             </div>
           </div>
         </div>
@@ -164,55 +124,35 @@ function StoriesBar() {
 
       {/* Story viewer */}
       {active && (
-        <div className="fixed inset-0 bg-black z-50 flex items-center justify-center"
-          onClick={() => setActive(null)}>
-          <div className="relative w-full max-w-xs sm:max-w-sm h-full flex items-center justify-center"
-            onClick={e => e.stopPropagation()}>
-            {/* Progress bar */}
+        <div className="fixed inset-0 bg-black z-50 flex items-center justify-center" onClick={() => setActive(null)}>
+          <div className="relative w-full max-w-xs h-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
             <div className="absolute top-4 left-4 right-4 flex gap-1">
               {active.group.stories.map((_, i) => (
                 <div key={i} className={`h-0.5 flex-1 rounded-full ${i <= active.idx ? "bg-white" : "bg-white/30"}`} />
               ))}
             </div>
-
-            {/* Author */}
             <div className="absolute top-8 left-4 flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary-100 overflow-hidden">
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-primary-100">
                 {active.group.author.avatar
                   ? <img src={active.group.author.avatar} alt="" className="w-full h-full object-cover" />
-                  : <div className="w-full h-full bg-primary-200 flex items-center justify-center text-primary-700 text-xs font-bold">{initials(active.group.author)}</div>}
+                  : <div className="w-full h-full flex items-center justify-center text-primary-700 text-xs font-bold">{ini(active.group.author)}</div>}
               </div>
-              <div>
-                <p className="text-white text-xs font-semibold">{active.group.author.fullName}</p>
-                <p className="text-white/60 text-xs">
-                  {formatDistanceToNow(new Date(active.group.stories[active.idx].createdAt), { addSuffix: true })}
-                </p>
-              </div>
+              <p className="text-white text-xs font-semibold">{active.group.author.fullName}</p>
             </div>
-
-            <button onClick={() => setActive(null)}
-              className="absolute top-8 right-4 text-white/70 hover:text-white">
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Story content */}
+            <button onClick={() => setActive(null)} className="absolute top-8 right-4 text-white/70"><X className="w-5 h-5" /></button>
             <div className="w-full h-[80vh] rounded-2xl overflow-hidden flex items-center justify-center"
               style={{ background: active.group.stories[active.idx].bgColor || "#0f6485" }}>
               {active.group.stories[active.idx].mediaUrl
                 ? <img src={active.group.stories[active.idx].mediaUrl} alt="" className="w-full h-full object-contain" />
-                : <p className="text-white text-xl font-medium text-center px-8 leading-relaxed">
-                    {active.group.stories[active.idx].text}
-                  </p>}
+                : <p className="text-white text-xl font-medium text-center px-8">{active.group.stories[active.idx].text}</p>}
             </div>
-
-            {/* Prev / Next */}
             {active.idx > 0 && (
-              <button onClick={() => setActive(prev => ({ ...prev, idx: prev.idx - 1 }))}
-                className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/30 rounded-full flex items-center justify-center text-white text-lg">‹</button>
+              <button onClick={() => setActive(p => ({ ...p, idx: p.idx - 1 }))}
+                className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/30 rounded-full flex items-center justify-center text-white text-xl">‹</button>
             )}
             {active.idx < active.group.stories.length - 1 && (
-              <button onClick={() => setActive(prev => ({ ...prev, idx: prev.idx + 1 }))}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/30 rounded-full flex items-center justify-center text-white text-lg">›</button>
+              <button onClick={() => setActive(p => ({ ...p, idx: p.idx + 1 }))}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/30 rounded-full flex items-center justify-center text-white text-xl">›</button>
             )}
           </div>
         </div>
@@ -221,34 +161,29 @@ function StoriesBar() {
   );
 }
 
-/* ─── Compose Post ─────────────────────────────────────────────────────────── */
+/* ─── Compose Post ──────────────────────────────────────────────────────────── */
 function ComposePost({ onPost }) {
   const { user } = useAuth();
-  const [content,   setContent]   = useState("");
-  const [postType,  setPostType]  = useState("general");
-  const [tags,      setTags]      = useState("");
-  const [mediaUrls, setMediaUrls] = useState([]);
-  const [uploading, setUploading] = useState(false);
-  const [submitting,setSubmitting]= useState(false);
+  const [content,    setContent]    = useState("");
+  const [postType,   setPostType]   = useState("general");
+  const [tags,       setTags]       = useState("");
+  const [mediaUrls,  setMediaUrls]  = useState([]);
+  const [uploading,  setUploading]  = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef(null);
-
-  const initials = user?.fullName?.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase() || "CF";
+  const ini = user?.fullName?.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase() || "CF";
 
   const uploadFile = async (file) => {
-    const data = new FormData();
-    data.append("image", file);
-    const res = await api.post("/users/upload", data, { headers:{"Content-Type":"multipart/form-data"} });
-    return res.data.imageUrl;
+    const d = new FormData(); d.append("image", file);
+    const r = await api.post("/users/upload", d, { headers: { "Content-Type": "multipart/form-data" } });
+    return r.data.imageUrl;
   };
 
   const handleFiles = async (files) => {
     if (!files?.length) return;
     setUploading(true);
-    try {
-      const urls = await Promise.all(Array.from(files).map(uploadFile));
-      setMediaUrls(prev => [...prev, ...urls]);
-    } catch(e) { console.error(e); }
-    finally { setUploading(false); }
+    try { const urls = await Promise.all(Array.from(files).map(uploadFile)); setMediaUrls(p => [...p, ...urls]); }
+    catch (e) { console.error(e); } finally { setUploading(false); }
   };
 
   const handleSubmit = async (e) => {
@@ -257,37 +192,33 @@ function ComposePost({ onPost }) {
     setSubmitting(true);
     try {
       const res = await api.post("/feed", {
-        content: content.trim(),
-        postType,
+        content: content.trim(), postType,
         tags: tags.split(",").map(t => t.trim()).filter(Boolean),
         mediaUrls,
       });
       onPost(res.data.post);
       setContent(""); setTags(""); setMediaUrls([]); setPostType("general");
-    } catch(e) { console.error(e); }
-    finally { setSubmitting(false); }
+    } catch (e) { console.error(e); } finally { setSubmitting(false); }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-card p-4 mb-5">
+    <div className="bg-white rounded-xl shadow-card p-4 mb-4">
       <div className="flex gap-3">
         <div className="w-9 h-9 rounded-full bg-primary-100 text-primary-700 font-semibold text-sm flex items-center justify-center overflow-hidden shrink-0">
-          {user?.avatar ? <img src={user.avatar} alt="" className="w-full h-full object-cover" /> : initials}
+          {user?.avatar ? <img src={user.avatar} alt="" className="w-full h-full object-cover" /> : ini}
         </div>
         <div className="flex-1 min-w-0">
           <textarea value={content} onChange={e => setContent(e.target.value)}
-            placeholder="What's on your mind, student?"
+            placeholder="Share something with your campus…"
             rows={content.length > 80 ? 4 : 2}
-            className="w-full resize-none text-sm text-gray-700 placeholder-gray-400 focus:outline-none leading-relaxed"
-          />
+            className="w-full resize-none text-sm text-gray-700 placeholder-gray-400 focus:outline-none leading-relaxed" />
 
-          {/* Media previews */}
           {mediaUrls.length > 0 && (
             <div className={`mt-2 grid gap-1.5 ${mediaUrls.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
               {mediaUrls.map((url, i) => (
                 <div key={i} className="relative">
                   <img src={url} alt="" className="w-full rounded-lg object-cover max-h-40" />
-                  <button onClick={() => setMediaUrls(prev => prev.filter((_, j) => j !== i))}
+                  <button onClick={() => setMediaUrls(p => p.filter((_, j) => j !== i))}
                     className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center text-white">
                     <X className="w-3 h-3" />
                   </button>
@@ -297,30 +228,24 @@ function ComposePost({ onPost }) {
           )}
 
           <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 flex-wrap">
-            {/* Image upload */}
-            <input ref={fileRef} type="file" accept="image/*,video/*" multiple className="hidden"
+            <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
               onChange={e => handleFiles(e.target.files)} />
             <button onClick={() => fileRef.current.click()} type="button"
-              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-primary-600 transition-colors px-2 py-1.5 rounded-lg hover:bg-gray-50">
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-primary-600 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
               {uploading
                 ? <div className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
                 : <ImageIcon className="w-3.5 h-3.5" />}
               Photo
             </button>
-
-            {/* Post type */}
             <select value={postType} onChange={e => setPostType(e.target.value)}
-              className="text-xs text-gray-500 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-400 bg-white">
+              className="text-xs text-gray-500 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none bg-white">
               {["general","announcement","event","resource","question"].map(t => (
-                <option key={t} value={t}>{t.charAt(0).toUpperCase()+t.slice(1)}</option>
+                <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
               ))}
             </select>
-
-            {/* Tags */}
             <input value={tags} onChange={e => setTags(e.target.value)}
-              placeholder="Tags (comma separated)"
-              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-400 flex-1 min-w-[120px]" />
-
+              placeholder="Tags (comma sep.)"
+              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-400 flex-1 min-w-[100px]" />
             <button onClick={handleSubmit} disabled={submitting || !content.trim()}
               className="ml-auto btn-primary px-4 py-1.5 text-xs disabled:opacity-50 flex items-center gap-1.5">
               {submitting && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
@@ -333,7 +258,7 @@ function ComposePost({ onPost }) {
   );
 }
 
-/* ─── Post Card ────────────────────────────────────────────────────────────── */
+/* ─── Post Card ─────────────────────────────────────────────────────────────── */
 function PostCard({ post, onLike, onComment, onMakeMeFamous }) {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
@@ -347,8 +272,7 @@ function PostCard({ post, onLike, onComment, onMakeMeFamous }) {
     if (!comment.trim()) return;
     setSubmitting(true);
     try { await onComment(post._id, comment.trim()); setComment(""); }
-    catch(e) { console.error(e); }
-    finally { setSubmitting(false); }
+    catch (e) { console.error(e); } finally { setSubmitting(false); }
   };
 
   const typeColors = {
@@ -359,15 +283,14 @@ function PostCard({ post, onLike, onComment, onMakeMeFamous }) {
     general:      "bg-gray-100 text-gray-600",
   };
 
-  const isLong   = post.content?.length > 280;
-  const content  = isLong && !expanded ? post.content.slice(0, 280) + "…" : post.content;
+  const isLong  = post.content?.length > 280;
+  const content = isLong && !expanded ? post.content.slice(0, 280) + "…" : post.content;
   const isRepost = !!post.originalPost;
 
   return (
     <div className="bg-white rounded-xl shadow-card p-4 sm:p-5 fade-in">
-      {/* Repost label */}
       {isRepost && (
-        <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
+        <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-2.5">
           <Repeat2 className="w-3.5 h-3.5" />
           Reposted from <span className="font-medium text-gray-600">@{post.originalPost?.author?.username}</span>
         </div>
@@ -384,9 +307,12 @@ function PostCard({ post, onLike, onComment, onMakeMeFamous }) {
             <span className="text-sm font-semibold text-gray-800">{post.author?.fullName}</span>
             {post.author?.verified && <BadgeCheck className="w-3.5 h-3.5 text-blue-500" />}
             {post.author?.department && <span className="text-xs text-gray-400">{post.author.department}</span>}
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ml-1 ${typeColors[post.postType] || typeColors.general}`}>
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${typeColors[post.postType] || typeColors.general}`}>
               {post.postType}
             </span>
+            {post.onFyp && (
+              <span className="text-xs bg-amber-50 text-amber-600 border border-amber-200 px-1.5 py-0.5 rounded-full font-medium">✨ FYP</span>
+            )}
             <span className="text-xs text-gray-400 ml-auto">
               {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
             </span>
@@ -395,7 +321,7 @@ function PostCard({ post, onLike, onComment, onMakeMeFamous }) {
         </div>
       </div>
 
-      {/* Original post preview if repost */}
+      {/* Original post preview for reposts */}
       {isRepost && post.originalPost && (
         <div className="mt-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
           <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap line-clamp-3">
@@ -404,7 +330,6 @@ function PostCard({ post, onLike, onComment, onMakeMeFamous }) {
         </div>
       )}
 
-      {/* Content */}
       <p className="mt-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{content}</p>
       {isLong && (
         <button onClick={() => setExpanded(v => !v)} className="text-xs text-primary-600 mt-1 hover:underline">
@@ -412,16 +337,14 @@ function PostCard({ post, onLike, onComment, onMakeMeFamous }) {
         </button>
       )}
 
-      {/* Media grid */}
       {post.mediaUrls?.length > 0 && (
         <div className={`mt-3 grid gap-1.5 ${post.mediaUrls.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
           {post.mediaUrls.map((url, i) => (
-            <img key={i} src={url} alt="" className="w-full rounded-lg object-cover max-h-72 cursor-pointer" />
+            <img key={i} src={url} alt="" className="w-full rounded-lg object-cover max-h-72" />
           ))}
         </div>
       )}
 
-      {/* Event details */}
       {post.postType === "event" && post.eventDetails?.date && (
         <div className="mt-3 bg-green-50 border border-green-100 rounded-lg p-3 text-xs text-green-700">
           📅 {new Date(post.eventDetails.date).toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric" })}
@@ -429,14 +352,12 @@ function PostCard({ post, onLike, onComment, onMakeMeFamous }) {
         </div>
       )}
 
-      {/* Tags */}
       {post.tags?.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mt-2.5">
-          {post.tags.map(tag => <span key={tag} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">#{tag}</span>)}
+          {post.tags.map(t => <span key={t} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">#{t}</span>)}
         </div>
       )}
 
-      {/* Action bar */}
       <div className="flex items-center gap-1 mt-4 pt-3 border-t border-gray-50">
         <button onClick={() => onLike(post._id)}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${liked ? "text-red-500 bg-red-50" : "text-gray-500 hover:bg-gray-50"}`}>
@@ -448,11 +369,9 @@ function PostCard({ post, onLike, onComment, onMakeMeFamous }) {
           <MessageCircle className="w-4 h-4" />
           <span>{post.commentCount ?? post.comments?.length ?? 0}</span>
         </button>
-        {/* MakeMeFamous */}
         <button onClick={() => onMakeMeFamous(post._id)}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-green-50 hover:text-green-600 transition-colors ml-auto">
           <Repeat2 className="w-4 h-4" />
-          <span className="hidden sm:inline text-xs">MakeMeFamous</span>
           {post.shareCount > 0 && <span className="text-xs">{post.shareCount}</span>}
         </button>
         <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-gray-50 transition-colors">
@@ -460,15 +379,12 @@ function PostCard({ post, onLike, onComment, onMakeMeFamous }) {
         </button>
       </div>
 
-      {/* Comments section */}
       {showComments && (
         <div className="mt-3 space-y-3">
           {post.comments?.map((c, i) => (
             <div key={i} className="flex gap-2">
-              <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-xs font-semibold flex items-center justify-center shrink-0">
-                {c.author?.avatar
-                  ? <img src={c.author.avatar} alt="" className="w-full h-full object-cover rounded-full" />
-                  : c.author?.fullName?.[0] || "?"}
+              <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-xs font-semibold flex items-center justify-center shrink-0 overflow-hidden">
+                {c.author?.avatar ? <img src={c.author.avatar} alt="" className="w-full h-full object-cover rounded-full" /> : c.author?.fullName?.[0] || "?"}
               </div>
               <div className="bg-gray-50 rounded-xl px-3 py-2 flex-1">
                 <span className="text-xs font-semibold text-gray-700">{c.author?.fullName} </span>
@@ -488,24 +404,28 @@ function PostCard({ post, onLike, onComment, onMakeMeFamous }) {
   );
 }
 
-/* ─── Main CampusFeedPage ──────────────────────────────────────────────────── */
+/* ─── Main CampusFeedPage ─────────────────────────────────────────────────── */
 export default function CampusFeedPage() {
-  const { user }  = useAuth();
-  const [tab,      setTab]      = useState("fyp");      // "fyp" | "following"
-  const [posts,    setPosts]    = useState([]);
-  const [loading,  setLoading]  = useState(true);
-  const [filter,   setFilter]   = useState("all");
-  const [page,     setPage]     = useState(1);
-  const [hasMore,  setHasMore]  = useState(true);
-  const loaderRef = useRef(null);
+  const { user }    = useAuth();
+  const [tab,       setTab]       = useState("fyp");     // "fyp" | "following"
+  const [posts,     setPosts]     = useState([]);
+  const [loading,   setLoading]   = useState(true);
+  const [filter,    setFilter]    = useState("all");
+  const [page,      setPage]      = useState(1);
+  const [hasMore,   setHasMore]   = useState(true);
+  const loaderRef   = useRef(null);
+  const fetchingRef = useRef(false);
 
   const fetchPosts = useCallback(async (reset = false) => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
     setLoading(true);
     try {
       const p = reset ? 1 : page;
       const params = { page: p, limit: 20 };
       if (filter !== "all") params.type = filter;
-      if (tab === "following") params.following = true;
+      // Use mode param for FYP vs Following
+      params.mode = tab === "following" ? "following" : "fyp";
 
       const res = await api.get("/feed", { params });
       const newPosts = res.data.posts || [];
@@ -513,45 +433,46 @@ export default function CampusFeedPage() {
       setHasMore(newPosts.length === 20);
       if (reset) setPage(2); else setPage(prev => prev + 1);
     } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    finally { setLoading(false); fetchingRef.current = false; }
   }, [tab, filter, page]);
 
-  useEffect(() => { fetchPosts(true); }, [tab, filter]);
+  useEffect(() => { setPage(1); fetchPosts(true); }, [tab, filter]);
 
   // Infinite scroll
   useEffect(() => {
-    const observer = new IntersectionObserver(entries => {
+    const obs = new IntersectionObserver(entries => {
       if (entries[0].isIntersecting && hasMore && !loading) fetchPosts(false);
     }, { threshold: 0.1 });
-    if (loaderRef.current) observer.observe(loaderRef.current);
-    return () => observer.disconnect();
-  }, [hasMore, loading, fetchPosts]);
+    if (loaderRef.current) obs.observe(loaderRef.current);
+    return () => obs.disconnect();
+  }, [hasMore, loading]);
 
-  const handlePost = (newPost) => setPosts(prev => [newPost, ...prev]);
-
-  const handleLike = async (postId) => {
+  const handlePost        = (p)         => setPosts(prev => [p, ...prev]);
+  const handleLike        = async (id)  => {
     try {
-      const res = await api.patch(`/feed/${postId}/like`);
-      setPosts(prev => prev.map(p => p._id === postId
-        ? { ...p, likes: res.data.liked ? [...(p.likes||[]), user._id] : (p.likes||[]).filter(id => id !== user._id) }
+      const res = await api.patch(`/feed/${id}/like`);
+      setPosts(prev => prev.map(p => p._id === id
+        ? { ...p, likes: res.data.liked ? [...(p.likes||[]), user._id] : (p.likes||[]).filter(x => x !== user._id) }
         : p));
-    } catch(e) { console.error(e); }
+    } catch (e) { console.error(e); }
   };
-
-  const handleComment = async (postId, content) => {
+  const handleComment     = async (id, content) => {
     try {
-      const res = await api.post(`/feed/${postId}/comment`, { content });
-      setPosts(prev => prev.map(p => p._id === postId
+      const res = await api.post(`/feed/${id}/comment`, { content });
+      setPosts(prev => prev.map(p => p._id === id
         ? { ...p, comments: [...(p.comments||[]), res.data.comment] }
         : p));
-    } catch(e) { console.error(e); }
+    } catch (e) { console.error(e); }
   };
-
-  const handleMakeMeFamous = async (postId) => {
+  const handleMakeMeFamous = async (id) => {
     try {
-      const res = await api.patch(`/feed/${postId}/makemefamous`);
-      setPosts(prev => [res.data.post, ...prev]);
-    } catch(e) { console.error(e); }
+      const res = await api.patch(`/feed/${id}/makemefamous`);
+      // The repost goes to the reposter's profile, NOT to the feed list here
+      // Just update shareCount on the original post visually
+      setPosts(prev => prev.map(p => p._id === id
+        ? { ...p, shareCount: (p.shareCount || 0) + 1 }
+        : p));
+    } catch (e) { console.error(e); }
   };
 
   const FILTERS = ["all","announcement","event","resource","question","general"];
@@ -563,10 +484,7 @@ export default function CampusFeedPage() {
 
       {/* FYP / Following tabs */}
       <div className="flex border-b border-gray-200 mb-4 bg-white rounded-xl overflow-hidden shadow-card">
-        {[
-          { key:"fyp",       label:"For You" },
-          { key:"following", label:"Following" },
-        ].map(({ key, label }) => (
+        {[{ key:"fyp", label:"For You ✨" }, { key:"following", label:"Following" }].map(({ key, label }) => (
           <button key={key} onClick={() => { setTab(key); setFilter("all"); }}
             className={`flex-1 py-3 text-sm font-semibold transition-colors border-b-2 ${
               tab === key ? "border-primary-700 text-primary-700" : "border-transparent text-gray-500 hover:text-gray-700"
@@ -580,16 +498,23 @@ export default function CampusFeedPage() {
       <ComposePost onPost={handlePost} />
 
       {/* Filter chips */}
-      <div className="flex gap-2 flex-wrap mb-4 overflow-x-auto scrollbar-none pb-1">
+      <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-none pb-1">
         {FILTERS.map(f => (
           <button key={f} onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap capitalize flex-shrink-0 ${
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap capitalize shrink-0 ${
               filter === f ? "bg-primary-700 text-white" : "bg-white text-gray-500 border border-gray-200 hover:border-primary-300"
             }`}>
             {f === "all" ? "All Posts" : f}
           </button>
         ))}
       </div>
+
+      {/* FYP note */}
+      {tab === "fyp" && (
+        <p className="text-xs text-gray-400 mb-3 text-center">
+          ✨ Posts appear here after earning enough likes, comments &amp; reposts
+        </p>
+      )}
 
       {/* Feed */}
       {loading && posts.length === 0
@@ -598,14 +523,14 @@ export default function CampusFeedPage() {
           </div>
         : posts.length === 0
           ? <div className="text-center py-16 text-gray-400">
-              <p className="font-medium">No posts yet</p>
-              <p className="text-sm mt-1">{tab === "following" ? "Follow people to see their posts here!" : "Be the first to post!"}</p>
+              <p className="font-medium text-lg">{tab === "fyp" ? "🌟" : "👥"}</p>
+              <p className="font-medium mt-1">{tab === "fyp" ? "No trending posts yet" : "No posts from people you follow"}</p>
+              <p className="text-sm mt-1">{tab === "fyp" ? "Posts earn their way here via engagement!" : "Follow more students to see their posts here."}</p>
             </div>
           : <div className="space-y-4">
               {posts.map(p => (
                 <PostCard key={p._id} post={p} onLike={handleLike} onComment={handleComment} onMakeMeFamous={handleMakeMeFamous} />
               ))}
-              {/* Infinite scroll loader */}
               <div ref={loaderRef} className="flex justify-center py-4">
                 {loading && hasMore && <div className="w-5 h-5 border-2 border-primary-300 border-t-transparent rounded-full animate-spin" />}
                 {!hasMore && posts.length > 0 && <p className="text-xs text-gray-400">You're all caught up!</p>}

@@ -2,42 +2,160 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── CSS variables: light defaults, dark overrides ─────────────────────────── */
 @layer base {
-  * { box-sizing: border-box; }
+  :root {
+    --bg:        #f4f7f9;
+    --surface:   #ffffff;
+    --card:      #ffffff;
+    --border:    #e5e7eb;
+    --text:      #1f2937;
+    --text-muted:#6b7280;
+    --input-bg:  #ffffff;
+    --nav-bg:    #0f6485;
+    --sidebar-bg:#ffffff;
+    --shadow:    rgba(0,0,0,0.07);
+  }
+
+  html.dark {
+    --bg:        #0f1117;
+    --surface:   #1a1d27;
+    --card:      #1e2233;
+    --border:    #2a2f45;
+    --text:      #e2e8f0;
+    --text-muted:#8892a4;
+    --input-bg:  #252a3d;
+    --nav-bg:    #0a0e1a;
+    --sidebar-bg:#141725;
+    --shadow:    rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; transition: background-color 0.2s ease, border-color 0.15s ease, color 0.1s ease; }
   html { scroll-behavior: smooth; }
+
   body {
-    @apply bg-surface text-gray-800 font-sans antialiased;
+    background-color: var(--bg);
+    color: var(--text);
+    @apply font-sans antialiased;
     font-size: 15px;
+  }
+
+  /* Force native inputs to follow dark mode */
+  html.dark input,
+  html.dark textarea,
+  html.dark select {
+    background-color: var(--input-bg) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+  }
+  html.dark input::placeholder,
+  html.dark textarea::placeholder {
+    color: var(--text-muted) !important;
   }
 }
 
 @layer components {
+  /* ── Buttons ─────────────────────────────────────────────────────────── */
   .btn-primary {
     @apply bg-primary-700 hover:bg-primary-800 text-white font-medium px-4 py-2 rounded-lg transition-colors duration-150 text-sm;
   }
   .btn-ghost {
-    @apply hover:bg-primary-50 text-primary-700 font-medium px-3 py-2 rounded-lg transition-colors duration-150 text-sm;
+    @apply text-primary-700 font-medium px-3 py-2 rounded-lg transition-colors duration-150 text-sm;
+    background-color: transparent;
   }
+  .btn-ghost:hover { background-color: rgba(15,100,133,0.1); }
+
+  /* ── Input ───────────────────────────────────────────────────────────── */
   .input-base {
-    @apply w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-transparent bg-white placeholder-gray-400 transition;
+    width: 100%;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    border: 1px solid var(--border);
+    background-color: var(--input-bg);
+    color: var(--text);
+    outline: none;
+    transition: box-shadow 0.15s, border-color 0.15s;
   }
+  .input-base:focus {
+    box-shadow: 0 0 0 2px rgba(43,191,221,0.4);
+    border-color: #2bbfdd;
+  }
+  .input-base::placeholder { color: var(--text-muted); }
+
+  /* ── Cards ───────────────────────────────────────────────────────────── */
+  .cf-card {
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0.875rem;
+    box-shadow: 0 2px 12px var(--shadow);
+  }
+
+  /* ── Chat bubbles ────────────────────────────────────────────────────── */
   .chat-bubble-mine {
     @apply bg-accent text-white rounded-2xl rounded-br-sm px-4 py-2 text-sm max-w-[72%] break-words;
   }
   .chat-bubble-theirs {
-    @apply bg-white border border-gray-100 text-gray-800 rounded-2xl rounded-bl-sm px-4 py-2 text-sm max-w-[72%] break-words shadow-sm;
+    border-radius: 1rem 1rem 1rem 0.25rem;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    max-width: 72%;
+    word-break: break-words;
+    background-color: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
   }
+
+  /* ── Sidebar & Navbar ────────────────────────────────────────────────── */
+  .cf-navbar  { background-color: var(--nav-bg); }
+  .cf-sidebar { background-color: var(--sidebar-bg); border-color: var(--border); }
+
+  /* ── Section dividers ────────────────────────────────────────────────── */
+  .cf-border  { border-color: var(--border); }
+  .cf-surface { background-color: var(--surface); }
+  .cf-text    { color: var(--text); }
+  .cf-muted   { color: var(--text-muted); }
 }
 
-/* Scrollbar */
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { @apply bg-gray-200 rounded-full; }
-::-webkit-scrollbar-thumb:hover { @apply bg-gray-300; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
 
-/* Fade-in animation */
+/* ── Fade-in animation ───────────────────────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .fade-in { animation: fadeIn 0.2s ease forwards; }
+
+/* ── Dark mode Tailwind overrides for commonly used classes ──────────────── */
+html.dark .bg-white        { background-color: var(--card) !important; }
+html.dark .bg-gray-50      { background-color: var(--surface) !important; }
+html.dark .bg-gray-100     { background-color: #252a3d !important; }
+html.dark .border-gray-100 { border-color: var(--border) !important; }
+html.dark .border-gray-200 { border-color: var(--border) !important; }
+html.dark .text-gray-800   { color: var(--text) !important; }
+html.dark .text-gray-700   { color: #c8d0de !important; }
+html.dark .text-gray-600   { color: #a8b3c4 !important; }
+html.dark .text-gray-500   { color: var(--text-muted) !important; }
+html.dark .text-gray-400   { color: #5a6278 !important; }
+html.dark .shadow-card      { box-shadow: 0 2px 12px var(--shadow) !important; }
+html.dark .shadow-card-hover{ box-shadow: 0 6px 20px var(--shadow) !important; }
+
+/* Surface background */
+html.dark .bg-surface { background-color: var(--bg) !important; }
+
+/* Hover states */
+html.dark .hover\:bg-gray-50:hover  { background-color: #252a3d !important; }
+html.dark .hover\:bg-gray-100:hover { background-color: #2e3348 !important; }
+
+/* Nav active state */
+html.dark .bg-primary-50  { background-color: rgba(15,100,133,0.2) !important; }
+
+/* Rounded cards that are bg-white */
+html.dark .rounded-xl,
+html.dark .rounded-2xl,
+html.dark .rounded-3xl {
+  border-color: var(--border);
+}

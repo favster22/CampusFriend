@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Bell, UserPlus, Heart, MessageCircle, Users, MessageSquare, Repeat2 } from "lucide-react";
 import { SubPageShell } from "../SettingsPage";
-import { useAuth } from "../../../context/AuthContext";
-import api from "../../../utils/api";
+import { useAuth } from "../../context/AuthContext";
+import api from "../../utils/api";
 
 function NotifRow({ icon: Icon, iconColor, label, description, checked, loading, onChange }) {
   return (

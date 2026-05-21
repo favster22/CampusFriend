@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { BadgeCheck, CheckCircle2, Clock, XCircle, AlertCircle } from "lucide-react";
 import { SubPageShell } from "../SettingsPage";
-import { useAuth } from "../../../context/AuthContext";
-import api from "../../../utils/api";
+import { useAuth } from "../../context/AuthContext";
+import api from "../../utils/api";
 
 export default function VerificationSubPage({ onBack }) {
   const { user, updateUser } = useAuth();

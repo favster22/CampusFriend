@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { BarChart2, Heart, MessageCircle, Repeat2, Eye, Users, TrendingUp } from "lucide-react";
 import { SubPageShell } from "../SettingsPage";
-import api from "../../../utils/api";
+import api from "../utils/api";
 
 function MiniBar({ data, color = "#0f6485", height = 48 }) {
   if (!data || Object.keys(data).length === 0)

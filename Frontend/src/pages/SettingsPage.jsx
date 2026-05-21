@@ -4,7 +4,7 @@ import {
   Settings as SettingsIcon, ChevronRight, ArrowLeft,
   Sun, Moon, Palette,
 } from "lucide-react";
-import { useTheme } from "../../context/ThemeContext";
+import { Themecontext } from "../../context/ThemeContext";
 
 // Sub-pages
 import AnalyticsSubPage       from "./settings/AnalyticsSubPage";
@@ -59,7 +59,7 @@ const MENU = [
 
 /* ── Appearance card (shown on hub) ─────────────────────────────────────── */
 function AppearanceCard() {
-  const { dark, toggle } = useTheme();
+  const { dark, toggle } = React.useContext(Themecontext);
   return (
     <div className="rounded-2xl p-4" style={{ background:"var(--card)", border:"1px solid var(--border)" }}>
       <div className="flex items-center gap-3 mb-4">

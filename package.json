@@ -1,12 +1,4 @@
 {
-  "private": true,
-  "workspaces": [
-    "Backend",
-    "Frontend"
-  ],
-  "scripts": {
-    "build": "npm --workspace Frontend run build"
-  },
   "dependencies": {
     "mongodb": "^7.2.0",
     "react-router-dom": "^6.30.3",

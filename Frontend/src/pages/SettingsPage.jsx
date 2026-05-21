@@ -13,7 +13,7 @@ import NotificationsSubPage   from "./settings/NotificationsSubPage";
 import AccessibilitySubPage   from "./settings/AccessibilitySubPage";
 import VerificationSubPage    from "./settings/VerificationSubPage";
 
-/* ── Settings menu items ────────────────────────────────────────────────── */
+
 const MENU = [
   {
     id: "analytics",

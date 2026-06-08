@@ -52,16 +52,6 @@ npm install
 npm run dev                 # Starts on http://localhost:5001
 ```
 
-**Environment variables (`.env`)**:
-```
-PORT=5001
-MONGO_URI=mongodb://localhost:27017/campusfriend
-JWT_SECRET=change_this_to_a_long_random_string
-JWT_EXPIRES_IN=7d
-CLIENT_URL=http://localhost:5173
-NODE_ENV=development
-```
-
 ---
 
 ### Frontend Setup

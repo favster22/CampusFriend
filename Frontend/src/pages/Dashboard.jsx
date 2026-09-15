@@ -81,7 +81,7 @@ export default function DashboardPage() {
                           <p className="text-xs" style={{ color:"var(--text-muted)" }}>
                             {formatDistanceToNow(new Date(p.createdAt), { addSuffix: true })}
                           </p>
-                          {p.onFyp && <span className="text-xs text-amber-500 font-medium">✨ FYP</span>}
+                          {p.onFyp && <span className="text-xs text-amber-500 font-medium"> FYP</span>}
                         </div>
                       </div>
                     </div>

@@ -59,17 +59,17 @@ export default function RegisterPage() {
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
                 <input name="fullName" required value={form.fullName} onChange={handleChange}
-                  placeholder="Alex Reyes" className="input-base" />
+                  placeholder="Kofi Oduro" className="input-base" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Username *</label>
                 <input name="username" required value={form.username} onChange={handleChange}
-                  placeholder="alexr" className="input-base" />
+                  placeholder="odurokof" className="input-base" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
                 <input name="studentId" value={form.studentId} onChange={handleChange}
-                  placeholder="2021-01234" className="input-base" />
+                  placeholder="UEB22902282" className="input-base" />
               </div>
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>

@@ -7,7 +7,6 @@ import { useAuth } from "../context/AuthContext";
 import api from "../utils/api";
 import { formatDistanceToNow } from "date-fns";
 
-/* ─── Stories Bar ──────────────────────────────────────────────────────────── */
 function StoriesBar() {
   const { user } = useAuth();
   const [groups,      setGroups]      = useState([]);
@@ -161,7 +160,6 @@ function StoriesBar() {
   );
 }
 
-/* ─── Compose Post ──────────────────────────────────────────────────────────── */
 function ComposePost({ onPost }) {
   const { user } = useAuth();
   const [content,    setContent]    = useState("");
@@ -258,7 +256,6 @@ function ComposePost({ onPost }) {
   );
 }
 
-/* ─── Post Card ─────────────────────────────────────────────────────────────── */
 function PostCard({ post, onLike, onComment, onMakeMeFamous }) {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
@@ -404,7 +401,6 @@ function PostCard({ post, onLike, onComment, onMakeMeFamous }) {
   );
 }
 
-/* ─── Main CampusFeedPage ─────────────────────────────────────────────────── */
 export default function CampusFeedPage() {
   const { user }    = useAuth();
   const [tab,       setTab]       = useState("fyp");     // "fyp" | "following"

@@ -508,7 +508,7 @@ export default function CampusFeedPage() {
       {/* FYP note */}
       {tab === "fyp" && (
         <p className="text-xs text-gray-400 mb-3 text-center">
-          ✨ Posts appear here after earning enough likes, comments &amp; reposts
+           Posts appear here after earning enough likes, comments &amp; reposts
         </p>
       )}
 

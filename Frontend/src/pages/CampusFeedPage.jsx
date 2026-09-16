@@ -344,8 +344,8 @@ function PostCard({ post, onLike, onComment, onMakeMeFamous }) {
 
       {post.postType === "event" && post.eventDetails?.date && (
         <div className="mt-3 bg-green-50 border border-green-100 rounded-lg p-3 text-xs text-green-700">
-          📅 {new Date(post.eventDetails.date).toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric" })}
-          {post.eventDetails.location && ` · 📍 ${post.eventDetails.location}`}
+           {new Date(post.eventDetails.date).toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric" })}
+          {post.eventDetails.location && ` ·  ${post.eventDetails.location}`}
         </div>
       )}
 
@@ -480,7 +480,7 @@ export default function CampusFeedPage() {
 
       {/* FYP / Following tabs */}
       <div className="flex border-b border-gray-200 mb-4 bg-white rounded-xl overflow-hidden shadow-card">
-        {[{ key:"fyp", label:"For You ✨" }, { key:"following", label:"Following" }].map(({ key, label }) => (
+        {[{ key:"fyp", label:"For You " }, { key:"following", label:"Following" }].map(({ key, label }) => (
           <button key={key} onClick={() => { setTab(key); setFilter("all"); }}
             className={`flex-1 py-3 text-sm font-semibold transition-colors border-b-2 ${
               tab === key ? "border-primary-700 text-primary-700" : "border-transparent text-gray-500 hover:text-gray-700"
@@ -519,7 +519,7 @@ export default function CampusFeedPage() {
           </div>
         : posts.length === 0
           ? <div className="text-center py-16 text-gray-400">
-              <p className="font-medium text-lg">{tab === "fyp" ? "🌟" : "👥"}</p>
+              <p className="font-medium text-lg">{tab === "fyp" ? "For You" : "Following"}</p>
               <p className="font-medium mt-1">{tab === "fyp" ? "No trending posts yet" : "No posts from people you follow"}</p>
               <p className="text-sm mt-1">{tab === "fyp" ? "Posts earn their way here via engagement!" : "Follow more students to see their posts here."}</p>
             </div>

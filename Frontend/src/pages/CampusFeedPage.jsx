@@ -200,56 +200,56 @@ function ComposePost({ onPost }) {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-card p-4 mb-4">
-      <div className="flex gap-3">
-        <div className="w-9 h-9 rounded-full bg-primary-100 text-primary-700 font-semibold text-sm flex items-center justify-center overflow-hidden shrink-0">
-          {user?.avatar ? <img src={user.avatar} alt="" className="w-full h-full object-cover" /> : ini}
-        </div>
-        <div className="flex-1 min-w-0">
-          <textarea value={content} onChange={e => setContent(e.target.value)}
-            placeholder="Share something with your campus…"
-            rows={content.length > 80 ? 4 : 2}
-            className="w-full resize-none text-sm text-gray-700 placeholder-gray-400 focus:outline-none leading-relaxed" />
+    <div className="flex gap-3 px-4 pt-3 pb-2 border-b" style={{ borderColor: "var(--border)" }}>
+      <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-500 font-bold text-sm flex items-center justify-center overflow-hidden shrink-0">
+        {user?.avatar ? <img src={user.avatar} alt="" className="w-full h-full object-cover" /> : ini}
+      </div>
+      <div className="flex-1 min-w-0">
+        <textarea id="compose-box" value={content} onChange={e => setContent(e.target.value)}
+          placeholder="What is happening on campus?!"
+          rows={content.length > 80 ? 4 : 2}
+          className="w-full resize-none text-xl bg-transparent focus:outline-none leading-relaxed pt-2"
+          style={{ color: "var(--text)" }} />
 
-          {mediaUrls.length > 0 && (
-            <div className={`mt-2 grid gap-1.5 ${mediaUrls.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-              {mediaUrls.map((url, i) => (
-                <div key={i} className="relative">
-                  <img src={url} alt="" className="w-full rounded-lg object-cover max-h-40" />
-                  <button onClick={() => setMediaUrls(p => p.filter((_, j) => j !== i))}
-                    className="absolute top-1 right-1 w-5 h-5 bg-black/50 rounded-full flex items-center justify-center text-white">
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 flex-wrap">
-            <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
-              onChange={e => handleFiles(e.target.files)} />
-            <button onClick={() => fileRef.current.click()} type="button"
-              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-primary-600 px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
-              {uploading
-                ? <div className="w-3.5 h-3.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                : <ImageIcon className="w-3.5 h-3.5" />}
-              Photo
-            </button>
-            <select value={postType} onChange={e => setPostType(e.target.value)}
-              className="text-xs text-gray-500 border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none bg-white">
-              {["general","announcement","event","resource","question"].map(t => (
-                <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-              ))}
-            </select>
-            <input value={tags} onChange={e => setTags(e.target.value)}
-              placeholder="Tags (comma sep.)"
-              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-primary-400 flex-1 min-w-[100px]" />
-            <button onClick={handleSubmit} disabled={submitting || !content.trim()}
-              className="ml-auto btn-primary px-4 py-1.5 text-xs disabled:opacity-50 flex items-center gap-1.5">
-              {submitting && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-              Post
-            </button>
+        {mediaUrls.length > 0 && (
+          <div className={`mt-2 grid gap-1 ${mediaUrls.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+            {mediaUrls.map((url, i) => (
+              <div key={i} className="relative">
+                <img src={url} alt="" className="w-full rounded-2xl object-cover max-h-72" />
+                <button onClick={() => setMediaUrls(p => p.filter((_, j) => j !== i))}
+                  className="absolute top-2 left-2 w-8 h-8 bg-black/70 rounded-full flex items-center justify-center text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
           </div>
+        )}
+
+        <div className="flex items-center gap-2 mt-2 pt-2 border-t flex-wrap" style={{ borderColor: "var(--border)" }}>
+          <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
+            onChange={e => handleFiles(e.target.files)} />
+          <button onClick={() => fileRef.current.click()} type="button" title="Add photo"
+            className="p-2 rounded-full text-primary-500 hover:bg-primary-500/10 transition-colors">
+            {uploading
+              ? <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
+              : <ImageIcon className="w-5 h-5" />}
+          </button>
+          <select value={postType} onChange={e => setPostType(e.target.value)}
+            className="text-sm rounded-full px-3 py-1.5 focus:outline-none border text-primary-500 font-medium"
+            style={{ borderColor: "var(--border)", background: "transparent" }}>
+            {["general","announcement","event","resource","question"].map(t => (
+              <option key={t} value={t} style={{ color: "#000" }}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+            ))}
+          </select>
+          <input value={tags} onChange={e => setTags(e.target.value)}
+            placeholder="#tags, comma separated"
+            className="text-sm bg-transparent px-2 py-1.5 focus:outline-none flex-1 min-w-[100px]"
+            style={{ color: "var(--text)" }} />
+          <button onClick={handleSubmit} disabled={submitting || !content.trim()}
+            className="ml-auto btn-primary !px-5 disabled:opacity-50 flex items-center gap-1.5">
+            {submitting && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+            Post
+          </button>
         </div>
       </div>
     </div>
@@ -273,131 +273,136 @@ function PostCard({ post, onLike, onComment, onMakeMeFamous }) {
   };
 
   const typeColors = {
-    announcement: "bg-blue-100 text-blue-700",
-    event:        "bg-green-100 text-green-700",
-    resource:     "bg-purple-100 text-purple-700",
-    question:     "bg-amber-100 text-amber-700",
-    general:      "bg-gray-100 text-gray-600",
+    announcement: "text-primary-500 border-primary-500/40",
+    event:        "text-emerald-500 border-emerald-500/40",
+    resource:     "text-purple-400 border-purple-400/40",
+    question:     "text-amber-500 border-amber-500/40",
   };
 
   const isLong  = post.content?.length > 280;
   const content = isLong && !expanded ? post.content.slice(0, 280) + "…" : post.content;
   const isRepost = !!post.originalPost;
+  const muted = { color: "var(--text-muted)" };
+  const ini = post.author?.fullName?.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase();
+
+  const Action = ({ onClick, icon: Icon, count, hover, active, fill }) => (
+    <button onClick={onClick} className={`group flex items-center gap-1 text-[13px] transition-colors ${active ? hover.text : ""} ${hover.groupText}`} style={active ? {} : muted}>
+      <span className={`p-2 rounded-full transition-colors ${hover.bg}`}>
+        <Icon className={`w-[18px] h-[18px] ${fill && active ? "fill-current" : ""}`} />
+      </span>
+      {count > 0 && <span>{count}</span>}
+    </button>
+  );
 
   return (
-    <div className="bg-white rounded-xl shadow-card p-4 sm:p-5 fade-in">
+    <article className="px-4 py-3 border-b x-hover fade-in" style={{ borderColor: "var(--border)" }}>
       {isRepost && (
-        <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-2.5">
-          <Repeat2 className="w-3.5 h-3.5" />
-          Reposted from <span className="font-medium text-gray-600">@{post.originalPost?.author?.username}</span>
-        </div>
-      )}
-
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-full bg-primary-100 text-primary-700 font-semibold flex items-center justify-center text-sm shrink-0 overflow-hidden">
-          {post.author?.avatar
-            ? <img src={post.author.avatar} alt="" className="w-full h-full object-cover" />
-            : post.author?.fullName?.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase()}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-sm font-semibold text-gray-800">{post.author?.fullName}</span>
-            {post.author?.verified && <BadgeCheck className="w-3.5 h-3.5 text-blue-500" />}
-            {post.author?.department && <span className="text-xs text-gray-400">{post.author.department}</span>}
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${typeColors[post.postType] || typeColors.general}`}>
-              {post.postType}
-            </span>
-            {post.onFyp && (
-              <span className="text-xs bg-amber-50 text-amber-600 border border-amber-200 px-1.5 py-0.5 rounded-full font-medium">✨ FYP</span>
-            )}
-            <span className="text-xs text-gray-400 ml-auto">
-              {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
-            </span>
-          </div>
-          {post.community && <p className="text-xs text-primary-600 mt-0.5">in {post.community.name}</p>}
-        </div>
-      </div>
-
-      {/* Original post preview for reposts */}
-      {isRepost && post.originalPost && (
-        <div className="mt-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap line-clamp-3">
-            {post.originalPost.content}
-          </p>
-        </div>
-      )}
-
-      <p className="mt-3 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">{content}</p>
-      {isLong && (
-        <button onClick={() => setExpanded(v => !v)} className="text-xs text-primary-600 mt-1 hover:underline">
-          {expanded ? "Show less" : "Show more"}
-        </button>
-      )}
-
-      {post.mediaUrls?.length > 0 && (
-        <div className={`mt-3 grid gap-1.5 ${post.mediaUrls.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
-          {post.mediaUrls.map((url, i) => (
-            <img key={i} src={url} alt="" className="w-full rounded-lg object-cover max-h-72" />
-          ))}
-        </div>
-      )}
-
-      {post.postType === "event" && post.eventDetails?.date && (
-        <div className="mt-3 bg-green-50 border border-green-100 rounded-lg p-3 text-xs text-green-700">
-           {new Date(post.eventDetails.date).toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric" })}
-          {post.eventDetails.location && ` ·  ${post.eventDetails.location}`}
-        </div>
-      )}
-
-      {post.tags?.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mt-2.5">
-          {post.tags.map(t => <span key={t} className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">#{t}</span>)}
-        </div>
-      )}
-
-      <div className="flex items-center gap-1 mt-4 pt-3 border-t border-gray-50">
-        <button onClick={() => onLike(post._id)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ${liked ? "text-red-500 bg-red-50" : "text-gray-500 hover:bg-gray-50"}`}>
-          <Heart className={`w-4 h-4 ${liked ? "fill-current" : ""}`} />
-          <span>{post.likeCount ?? post.likes?.length ?? 0}</span>
-        </button>
-        <button onClick={() => setShowComments(v => !v)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-gray-50 transition-colors">
-          <MessageCircle className="w-4 h-4" />
-          <span>{post.commentCount ?? post.comments?.length ?? 0}</span>
-        </button>
-        <button onClick={() => onMakeMeFamous(post._id)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-green-50 hover:text-green-600 transition-colors ml-auto">
+        <div className="flex items-center gap-2 text-[13px] font-bold mb-1 ml-8" style={muted}>
           <Repeat2 className="w-4 h-4" />
-          {post.shareCount > 0 && <span className="text-xs">{post.shareCount}</span>}
-        </button>
-        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-gray-500 hover:bg-gray-50 transition-colors">
-          <Bookmark className="w-4 h-4" />
-        </button>
-      </div>
-
-      {showComments && (
-        <div className="mt-3 space-y-3">
-          {post.comments?.map((c, i) => (
-            <div key={i} className="flex gap-2">
-              <div className="w-6 h-6 rounded-full bg-primary-100 text-primary-700 text-xs font-semibold flex items-center justify-center shrink-0 overflow-hidden">
-                {c.author?.avatar ? <img src={c.author.avatar} alt="" className="w-full h-full object-cover rounded-full" /> : c.author?.fullName?.[0] || "?"}
-              </div>
-              <div className="bg-gray-50 rounded-xl px-3 py-2 flex-1">
-                <span className="text-xs font-semibold text-gray-700">{c.author?.fullName} </span>
-                <span className="text-xs text-gray-600">{c.content}</span>
-              </div>
-            </div>
-          ))}
-          <form onSubmit={handleComment} className="flex gap-2">
-            <input value={comment} onChange={e => setComment(e.target.value)}
-              placeholder="Write a comment…" className="input-base text-xs py-1.5 flex-1" />
-            <button type="submit" disabled={submitting || !comment.trim()}
-              className="btn-primary px-3 py-1.5 text-xs disabled:opacity-50">Post</button>
-          </form>
+          Reposted from @{post.originalPost?.author?.username}
         </div>
       )}
-    </div>
+
+      <div className="flex gap-3">
+        <div className="w-10 h-10 rounded-full bg-primary-100 text-primary-500 font-bold flex items-center justify-center text-sm shrink-0 overflow-hidden">
+          {post.author?.avatar ? <img src={post.author.avatar} alt="" className="w-full h-full object-cover" /> : ini}
+        </div>
+
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1 flex-wrap text-[15px] leading-5">
+            <span className="font-bold truncate" style={{ color: "var(--text)" }}>{post.author?.fullName}</span>
+            {post.author?.verified && <BadgeCheck className="w-[18px] h-[18px] text-primary-500 fill-primary-500/20" />}
+            <span style={muted}>@{post.author?.username}</span>
+            <span style={muted}>·</span>
+            <span style={muted}>{formatDistanceToNow(new Date(post.createdAt), { addSuffix: false })}</span>
+            {post.postType && post.postType !== "general" && (
+              <span className={`ml-1 text-xs font-medium px-2 py-0.5 rounded-full border capitalize ${typeColors[post.postType] || ""}`}>
+                {post.postType}
+              </span>
+            )}
+            {post.onFyp && <span className="text-xs text-amber-500">✨</span>}
+          </div>
+          {(post.author?.department || post.community) && (
+            <p className="text-[13px]" style={muted}>
+              {post.author?.department}{post.community ? ` · in ${post.community.name}` : ""}
+            </p>
+          )}
+
+          {isRepost && post.originalPost && (
+            <div className="mt-2 p-3 rounded-2xl border" style={{ borderColor: "var(--border)" }}>
+              <p className="text-[15px] whitespace-pre-wrap line-clamp-3" style={{ color: "var(--text)" }}>
+                {post.originalPost.content}
+              </p>
+            </div>
+          )}
+
+          <p className="mt-1 text-[15px] leading-5 whitespace-pre-wrap" style={{ color: "var(--text)" }}>{content}</p>
+          {isLong && (
+            <button onClick={() => setExpanded(v => !v)} className="text-[15px] text-primary-500 hover:underline">
+              {expanded ? "Show less" : "Show more"}
+            </button>
+          )}
+
+          {post.mediaUrls?.length > 0 && (
+            <div className={`mt-3 grid gap-0.5 rounded-2xl overflow-hidden border ${post.mediaUrls.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
+              style={{ borderColor: "var(--border)" }}>
+              {post.mediaUrls.map((url, i) => (
+                <img key={i} src={url} alt="" className="w-full object-cover max-h-[510px]" />
+              ))}
+            </div>
+          )}
+
+          {post.postType === "event" && post.eventDetails?.date && (
+            <div className="mt-3 rounded-2xl p-3 text-sm border text-emerald-500" style={{ borderColor: "var(--border)" }}>
+              {new Date(post.eventDetails.date).toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric" })}
+              {post.eventDetails.location && ` · ${post.eventDetails.location}`}
+            </div>
+          )}
+
+          {post.tags?.length > 0 && (
+            <div className="flex flex-wrap gap-x-2 mt-2">
+              {post.tags.map(t => <span key={t} className="text-[15px] text-primary-500">#{t}</span>)}
+            </div>
+          )}
+
+          {/* action row */}
+          <div className="flex items-center justify-between max-w-[425px] mt-1 -ml-2">
+            <Action onClick={() => setShowComments(v => !v)} icon={MessageCircle}
+              count={post.commentCount ?? post.comments?.length ?? 0}
+              hover={{ bg: "group-hover:bg-primary-500/10", groupText: "hover:text-primary-500", text: "text-primary-500" }} />
+            <Action onClick={() => onMakeMeFamous(post._id)} icon={Repeat2} count={post.shareCount || 0}
+              hover={{ bg: "group-hover:bg-emerald-500/10", groupText: "hover:text-emerald-500", text: "text-emerald-500" }} />
+            <Action onClick={() => onLike(post._id)} icon={Heart} active={liked} fill
+              count={post.likeCount ?? post.likes?.length ?? 0}
+              hover={{ bg: "group-hover:bg-pink-500/10", groupText: "hover:text-pink-500", text: "text-pink-500" }} />
+            <Action icon={Bookmark}
+              hover={{ bg: "group-hover:bg-primary-500/10", groupText: "hover:text-primary-500", text: "text-primary-500" }} />
+          </div>
+
+          {showComments && (
+            <div className="mt-2 space-y-3">
+              {post.comments?.map((c, i) => (
+                <div key={i} className="flex gap-2">
+                  <div className="w-8 h-8 rounded-full bg-primary-100 text-primary-500 text-xs font-bold flex items-center justify-center shrink-0 overflow-hidden">
+                    {c.author?.avatar ? <img src={c.author.avatar} alt="" className="w-full h-full object-cover" /> : c.author?.fullName?.[0] || "?"}
+                  </div>
+                  <div className="flex-1 text-[15px]">
+                    <span className="font-bold" style={{ color: "var(--text)" }}>{c.author?.fullName} </span>
+                    <span style={{ color: "var(--text)" }}>{c.content}</span>
+                  </div>
+                </div>
+              ))}
+              <form onSubmit={handleComment} className="flex gap-2 items-center">
+                <input value={comment} onChange={e => setComment(e.target.value)}
+                  placeholder="Post your reply" className="input-base !py-2 !text-[15px] !rounded-full flex-1" />
+                <button type="submit" disabled={submitting || !comment.trim()}
+                  className="btn-primary disabled:opacity-50">Reply</button>
+              </form>
+            </div>
+          )}
+        </div>
+      </div>
+    </article>
   );
 }
 
@@ -473,63 +478,70 @@ export default function CampusFeedPage() {
 
   const FILTERS = ["all","announcement","event","resource","question","general"];
 
-  return (
-    <div className="max-w-2xl mx-auto px-3 sm:px-6 pt-4 pb-6">
-      {/* Stories */}
-      <StoriesBar />
-
-      {/* FYP / Following tabs */}
-      <div className="flex border-b border-gray-200 mb-4 bg-white rounded-xl overflow-hidden shadow-card">
-        {[{ key:"fyp", label:"For You " }, { key:"following", label:"Following" }].map(({ key, label }) => (
-          <button key={key} onClick={() => { setTab(key); setFilter("all"); }}
-            className={`flex-1 py-3 text-sm font-semibold transition-colors border-b-2 ${
-              tab === key ? "border-primary-700 text-primary-700" : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}>
-            {label}
-          </button>
-        ))}
+    return (
+    <div>
+      {/* sticky header with tabs */}
+      <div className="sticky top-0 md:top-0 z-10 backdrop-blur border-b"
+        style={{ background: "color-mix(in srgb, var(--bg) 85%, transparent)", borderColor: "var(--border)" }}>
+        <h1 className="hidden md:block px-4 pt-3 text-xl font-bold" style={{ color: "var(--text)" }}>Home</h1>
+        <div className="flex">
+          {[{ key:"fyp", label:"For you" }, { key:"following", label:"Following" }].map(({ key, label }) => (
+            <button key={key} onClick={() => { setTab(key); setFilter("all"); }}
+              className={`x-tab ${tab === key ? "x-tab-active" : ""}`}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Compose */}
       <ComposePost onPost={handlePost} />
 
+      {/* Stories */}
+      <div className="px-3 border-b" style={{ borderColor: "var(--border)" }}>
+        <StoriesBar />
+      </div>
+
       {/* Filter chips */}
-      <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-none pb-1">
+      <div className="flex gap-2 px-4 py-3 overflow-x-auto scrollbar-none border-b" style={{ borderColor: "var(--border)" }}>
         {FILTERS.map(f => (
           <button key={f} onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors whitespace-nowrap capitalize shrink-0 ${
-              filter === f ? "bg-primary-700 text-white" : "bg-white text-gray-500 border border-gray-200 hover:border-primary-300"
-            }`}>
-            {f === "all" ? "All Posts" : f}
+            className={`px-4 py-1.5 rounded-full text-sm font-bold transition-colors whitespace-nowrap capitalize shrink-0 border ${
+              filter === f ? "bg-primary-500 text-white border-primary-500" : "hover:bg-primary-500/10"
+            }`}
+            style={filter === f ? {} : { color: "var(--text)", borderColor: "var(--border)" }}>
+            {f === "all" ? "All posts" : f}
           </button>
         ))}
       </div>
 
-      {/* FYP note */}
       {tab === "fyp" && (
-        <p className="text-xs text-gray-400 mb-3 text-center">
-           Posts appear here after earning enough likes, comments &amp; reposts
+        <p className="text-[13px] px-4 py-2 border-b" style={{ color: "var(--text-muted)", borderColor: "var(--border)" }}>
+          Posts appear here after earning enough likes, comments &amp; reposts.
         </p>
       )}
 
       {/* Feed */}
       {loading && posts.length === 0
         ? <div className="flex justify-center py-16">
-            <div className="w-6 h-6 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" />
+            <div className="w-7 h-7 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />
           </div>
         : posts.length === 0
-          ? <div className="text-center py-16 text-gray-400">
-              <p className="font-medium text-lg">{tab === "fyp" ? "For You" : "Following"}</p>
-              <p className="font-medium mt-1">{tab === "fyp" ? "No trending posts yet" : "No posts from people you follow"}</p>
-              <p className="text-sm mt-1">{tab === "fyp" ? "Posts earn their way here via engagement!" : "Follow more students to see their posts here."}</p>
+          ? <div className="text-center py-16 px-8">
+              <p className="text-3xl font-extrabold" style={{ color: "var(--text)" }}>
+                {tab === "fyp" ? "No trending posts yet" : "Nothing from people you follow"}
+              </p>
+              <p className="mt-2 text-[15px]" style={{ color: "var(--text-muted)" }}>
+                {tab === "fyp" ? "Posts earn their way here via engagement!" : "Follow more students to see their posts here."}
+              </p>
             </div>
-          : <div className="space-y-4">
+          : <div>
               {posts.map(p => (
                 <PostCard key={p._id} post={p} onLike={handleLike} onComment={handleComment} onMakeMeFamous={handleMakeMeFamous} />
               ))}
-              <div ref={loaderRef} className="flex justify-center py-4">
-                {loading && hasMore && <div className="w-5 h-5 border-2 border-primary-300 border-t-transparent rounded-full animate-spin" />}
-                {!hasMore && posts.length > 0 && <p className="text-xs text-gray-400">You're all caught up!</p>}
+              <div ref={loaderRef} className="flex justify-center py-6">
+                {loading && hasMore && <div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />}
+                {!hasMore && posts.length > 0 && <p className="text-sm" style={{ color: "var(--text-muted)" }}>You're all caught up!</p>}
               </div>
             </div>
       }

@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
+import { Outlet, NavLink, Link, useNavigate, useLocation } from "react-router-dom";
 import {
-  LayoutDashboard, User, MessageSquare, Users, Rss, BookOpen,
-  Bell, Search, ChevronDown, LogOut, Settings, Menu, X,
-  FileText, UserCircle, Sun, Moon, Home, Compass,
+  Home, Search, Bell, Mail, Users, BookOpen, User, Settings,
+  LayoutDashboard, MoreHorizontal, LogOut, Sun, Moon, FileText,
+  Feather, Calendar,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import api from "../utils/api";
 
-/* ── Avatar component used throughout layout ─────────────────────────── */
-export function UserAvatar({ user, size = 32, className = "" }) {
+/* ── Avatar (exported – Dashboard uses it) ───────────────────────────── */
+export function UserAvatar({ user, size = 40, className = "" }) {
   const initials = user?.fullName
     ?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "CF";
 
@@ -21,37 +21,43 @@ export function UserAvatar({ user, size = 32, className = "" }) {
         alt={user.fullName || "User"}
         style={{ width: size, height: size }}
         className={`rounded-full object-cover flex-shrink-0 ${className}`}
-        onError={e => {
-          // Fallback to initials if image fails to load
-          e.target.style.display = "none";
-          e.target.nextSibling && (e.target.nextSibling.style.display = "flex");
-        }}
       />
     );
   }
-
   return (
     <div
       style={{ width: size, height: size, fontSize: size * 0.38 }}
-      className={`rounded-full bg-primary-100 text-primary-700 font-semibold flex items-center justify-center flex-shrink-0 ${className}`}
+      className={`rounded-full bg-primary-100 text-primary-500 font-bold flex items-center justify-center flex-shrink-0 ${className}`}
     >
       {initials}
     </div>
   );
 }
 
-/* ── Search bar ──────────────────────────────────────────────────────── */
-function SearchBar({ onClose }) {
+/* ── Campusfriend mark (own logo, not X's) ───────────────────────────── */
+function Logo({ size = 30 }) {
+  return (
+    <div style={{ width: size, height: size }}
+      className="rounded-full bg-primary-500 text-white font-extrabold flex items-center justify-center"
+    >
+      <span style={{ fontSize: size * 0.55 }}>C</span>
+    </div>
+  );
+}
+
+/* ── Search (pill, sits in the right rail) ───────────────────────────── */
+function SearchBar() {
   const [query,   setQuery]   = useState("");
   const [results, setResults] = useState({ users: [], posts: [] });
   const [open,    setOpen]    = useState(false);
+  const [focus,   setFocus]   = useState(false);
   const [loading, setLoading] = useState(false);
-  const navigate    = useNavigate();
+  const navigate     = useNavigate();
   const containerRef = useRef(null);
   const debounce     = useRef(null);
 
   const search = useCallback(async (q) => {
-    if (!q.trim()) { setResults({ users:[], posts:[] }); setOpen(false); return; }
+    if (!q.trim()) { setResults({ users: [], posts: [] }); setOpen(false); return; }
     setLoading(true);
     try {
       const [usersRes, postsRes] = await Promise.allSettled([
@@ -75,83 +81,68 @@ function SearchBar({ onClose }) {
   };
 
   useEffect(() => {
-    const h = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false);
-    };
+    const h = (e) => { if (containerRef.current && !containerRef.current.contains(e.target)) setOpen(false); };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
-  const goTo = (path) => { setOpen(false); setQuery(""); navigate(path); onClose?.(); };
+  const goTo = (path) => { setOpen(false); setQuery(""); navigate(path); };
   const hasResults = results.users?.length > 0 || results.posts?.length > 0;
 
   return (
-    <div ref={containerRef} className="flex-1 max-w-lg mx-auto relative">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 pointer-events-none" />
-      {loading && (
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 border-white/40 border-t-white/80 rounded-full animate-spin" />
-      )}
-      <input
-        type="text" value={query} onChange={handleChange}
-        onKeyDown={e => e.key === "Escape" && setOpen(false)}
-        onFocus={() => query && hasResults && setOpen(true)}
-        placeholder="Search students, posts…"
-        className="w-full bg-white/10 border border-white/20 rounded-full py-1.5 pl-9 pr-4 text-sm text-white placeholder-white/50 focus:outline-none focus:bg-white/20 transition"
-      />
+    <div ref={containerRef} className="relative">
+      <div className="flex items-center gap-3 rounded-full px-4 h-11 border"
+        style={{ background: focus ? "transparent" : "var(--input-bg)", borderColor: focus ? "var(--blue)" : "transparent" }}>
+        <Search className="w-[18px] h-[18px] shrink-0" style={{ color: focus ? "var(--blue)" : "var(--text-muted)" }} />
+        <input
+          type="text" value={query} onChange={handleChange}
+          onFocus={() => { setFocus(true); query && hasResults && setOpen(true); }}
+          onBlur={() => setFocus(false)}
+          onKeyDown={e => e.key === "Escape" && setOpen(false)}
+          placeholder="Search"
+          className="flex-1 bg-transparent outline-none text-[15px] min-w-0"
+          style={{ color: "var(--text)" }}
+        />
+        {loading && <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" />}
+      </div>
+
       {open && (
-        <div className="absolute top-full left-0 right-0 mt-2 rounded-2xl shadow-xl overflow-hidden z-50 max-h-80 overflow-y-auto"
-          style={{ background: "var(--card)", border: "1px solid var(--border)" }}>
+        <div className="absolute top-full left-0 right-0 mt-1 rounded-2xl overflow-hidden z-50 max-h-96 overflow-y-auto border shadow-2xl"
+          style={{ background: "var(--card)", borderColor: "var(--border)" }}>
           {!hasResults && !loading && (
             <div className="px-4 py-5 text-center text-sm" style={{ color: "var(--text-muted)" }}>
               No results for "{query}"
             </div>
           )}
-          {results.users?.length > 0 && (
-            <div>
-              <p className="px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Students</p>
-              {results.users.map(u => (
-                <button key={u._id} onClick={() => goTo(`/profile/${u.username}`)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
-                  style={{ color: "var(--text)" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "var(--surface)"}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                  <UserAvatar user={u} size={32} />
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{u.fullName}</p>
-                    <p className="text-xs truncate" style={{ color: "var(--text-muted)" }}>@{u.username}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
-          {results.posts?.length > 0 && (
-            <div>
-              <p className="px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>Posts</p>
-              {results.posts.map(p => (
-                <button key={p._id} onClick={() => goTo(`/feed`)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 text-left transition-colors"
-                  style={{ color: "var(--text)" }}
-                  onMouseEnter={e => e.currentTarget.style.background = "var(--surface)"}
-                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                  <div className="w-8 h-8 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
-                    <FileText className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-sm truncate">{p.content?.slice(0, 60)}</p>
-                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>by {p.author?.fullName}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+          {results.users?.map(u => (
+            <button key={u._id} onClick={() => goTo(`/profile/${u.username}`)}
+              className="w-full flex items-center gap-3 px-4 py-3 text-left x-hover">
+              <UserAvatar user={u} size={40} />
+              <div className="min-w-0">
+                <p className="text-[15px] font-bold truncate" style={{ color: "var(--text)" }}>{u.fullName}</p>
+                <p className="text-sm truncate" style={{ color: "var(--text-muted)" }}>@{u.username}</p>
+              </div>
+            </button>
+          ))}
+          {results.posts?.map(p => (
+            <button key={p._id} onClick={() => goTo("/feed")}
+              className="w-full flex items-center gap-3 px-4 py-3 text-left x-hover border-t"
+              style={{ borderColor: "var(--border)" }}>
+              <FileText className="w-5 h-5 shrink-0" style={{ color: "var(--text-muted)" }} />
+              <div className="min-w-0">
+                <p className="text-sm truncate" style={{ color: "var(--text)" }}>{p.content?.slice(0, 70)}</p>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>by {p.author?.fullName}</p>
+              </div>
+            </button>
+          ))}
         </div>
       )}
     </div>
   );
 }
 
-/* ── Notifications dropdown ──────────────────────────────────────────── */
-function NotifDropdown() {
+/* ── Notifications panel ─────────────────────────────────────────────── */
+function NotifPanel({ onRead }) {
   const [notifs,  setNotifs]  = useState([]);
   const [unread,  setUnread]  = useState(0);
   const [loading, setLoading] = useState(true);
@@ -165,277 +156,244 @@ function NotifDropdown() {
 
   const markAll = async () => {
     await api.patch("/notifications/read-all");
-    setUnread(0);
+    setUnread(0); onRead?.();
     setNotifs(p => p.map(n => ({ ...n, read: true })));
   };
 
-  const icons = { follow:"👤", like:"❤️", comment:"💬", repost:"🔁", message:"💬", community:"👥", story_view:"👁️" };
+  const icons = { follow:"👤", like:"❤️", comment:"💬", repost:"🔁", message:"✉️", community:"👥", story_view:"👁️" };
 
   return (
-    <div className="absolute right-0 mt-2 w-80 rounded-2xl shadow-xl overflow-hidden z-50"
-      style={{ background:"var(--card)", border:"1px solid var(--border)" }}>
-      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor:"var(--border)", background:"var(--surface)" }}>
-        <p className="text-sm font-semibold" style={{ color:"var(--text)" }}>
-          Notifications {unread > 0 && <span className="ml-1 text-xs bg-red-500 text-white rounded-full px-1.5 py-0.5">{unread}</span>}
-        </p>
-        {unread > 0 && <button onClick={markAll} className="text-xs text-primary-600 hover:underline">Mark all read</button>}
+    <div className="fixed inset-x-2 bottom-16 md:absolute md:inset-x-auto md:bottom-auto md:left-full md:top-0 md:ml-2 md:w-96 rounded-2xl overflow-hidden z-50 border shadow-2xl fade-in"
+      style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+      <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: "var(--border)" }}>
+        <p className="text-xl font-bold" style={{ color: "var(--text)" }}>Notifications</p>
+        {unread > 0 && <button onClick={markAll} className="text-sm text-primary-500 hover:underline">Mark all read</button>}
       </div>
-      <div className="max-h-80 overflow-y-auto">
+      <div className="max-h-[70vh] md:max-h-96 overflow-y-auto">
         {loading
-          ? <div className="flex justify-center py-6"><div className="w-5 h-5 border-2 border-primary-400 border-t-transparent rounded-full animate-spin" /></div>
+          ? <div className="flex justify-center py-8"><div className="w-5 h-5 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" /></div>
           : notifs.length === 0
-            ? <div className="px-4 py-6 text-center text-sm" style={{ color:"var(--text-muted)" }}>No notifications yet</div>
+            ? <div className="px-4 py-10 text-center" style={{ color: "var(--text-muted)" }}>Nothing to see here — yet</div>
             : notifs.map(n => (
-                <div key={n._id} className="flex items-start gap-3 px-4 py-3 border-b last:border-0"
-                  style={{ borderColor:"var(--border)", background: !n.read ? "rgba(15,100,133,0.06)" : "transparent" }}>
-                  <UserAvatar user={n.sender} size={32} />
+                <div key={n._id} className="flex items-start gap-3 px-4 py-3 border-b last:border-0 x-hover"
+                  style={{ borderColor: "var(--border)", background: !n.read ? "rgba(29,155,240,0.08)" : "transparent" }}>
+                  <UserAvatar user={n.sender} size={36} />
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs leading-snug" style={{ color:"var(--text)" }}>
-                      {icons[n.type] || "🔔"} {n.message}
-                    </p>
-                    <p className="text-xs mt-0.5" style={{ color:"var(--text-muted)" }}>
+                    <p className="text-[15px] leading-snug" style={{ color: "var(--text)" }}>{icons[n.type] || "🔔"} {n.message}</p>
+                    <p className="text-sm mt-0.5" style={{ color: "var(--text-muted)" }}>
                       {n.createdAt ? new Date(n.createdAt).toLocaleDateString() : ""}
                     </p>
                   </div>
-                  {!n.read && <div className="w-2 h-2 bg-blue-500 rounded-full shrink-0 mt-1" />}
                 </div>
-              ))
-        }
+              ))}
       </div>
     </div>
   );
 }
 
-/* ── Nav items ───────────────────────────────────────────────────────── */
+/* ── Right rail: search + upcoming events + footer ───────────────────── */
+function RightRail() {
+  const [events, setEvents] = useState([]);
+  useEffect(() => {
+    api.get("/feed/events").then(r => setEvents((r.data.events || []).slice(0, 4))).catch(() => {});
+  }, []);
+
+  return (
+    <aside className="hidden lg:block w-[350px] shrink-0 pl-6 pr-2 py-1 overflow-y-auto">
+      <div className="sticky top-0 py-1 z-10" style={{ background: "var(--bg)" }}>
+        <SearchBar />
+      </div>
+
+      <div className="rounded-2xl mt-3 overflow-hidden" style={{ background: "var(--surface)" }}>
+        <h2 className="text-xl font-extrabold px-4 py-3" style={{ color: "var(--text)" }}>Upcoming on campus</h2>
+        {events.length === 0 ? (
+          <p className="px-4 pb-4 text-[15px]" style={{ color: "var(--text-muted)" }}>
+            No upcoming events. Post an event on the feed to see it here.
+          </p>
+        ) : events.map(ev => (
+          <Link key={ev._id} to="/feed" className="block px-4 py-3 x-hover" style={{ color: "var(--text)" }}>
+            <p className="text-[13px] flex items-center gap-1" style={{ color: "var(--text-muted)" }}>
+              <Calendar className="w-3.5 h-3.5" />
+              {new Date(ev.eventDetails.date).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+              {ev.eventDetails.location ? ` · ${ev.eventDetails.location}` : ""}
+            </p>
+            <p className="text-[15px] font-bold line-clamp-2">{ev.content}</p>
+            <p className="text-[13px]" style={{ color: "var(--text-muted)" }}>by {ev.author?.fullName}</p>
+          </Link>
+        ))}
+        <Link to="/resources" className="block px-4 py-3 text-[15px] text-primary-500 x-hover">Browse resource hub</Link>
+      </div>
+
+      <p className="text-[13px] px-4 py-4" style={{ color: "var(--text-muted)" }}>
+        © {new Date().getFullYear()} Campusfriend · Connect. Study. Belong.
+      </p>
+    </aside>
+  );
+}
+
+/* ── Navigation ──────────────────────────────────────────────────────── */
 const NAV_ITEMS = [
-  { to:"/dashboard",   label:"Dashboard",   icon:LayoutDashboard },
-  { to:"/profile",     label:"Profile",     icon:User },
-  { to:"/messages",    label:"Messages",    icon:MessageSquare },
-  { to:"/communities", label:"Communities", icon:Users },
-  { to:"/feed",        label:"Campus Feed", icon:Rss },
-  { to:"/resources",   label:"Resource Hub",icon:BookOpen },
-  { to:"/settings",    label:"Settings",    icon:Settings },
+  { to: "/feed",        label: "Home",        icon: Home },
+  { to: "/dashboard",   label: "Dashboard",   icon: LayoutDashboard },
+  { to: "/communities", label: "Communities", icon: Users },
+  { to: "/messages",    label: "Messages",    icon: Mail },
+  { to: "/resources",   label: "Resources",   icon: BookOpen },
+  { to: "/profile",     label: "Profile",     icon: User },
+  { to: "/settings",    label: "Settings",    icon: Settings },
 ];
 
 const MOBILE_NAV = [
-  { to:"/dashboard",   icon:Home },
-  { to:"/feed",        icon:Rss },
-  { to:"/messages",    icon:MessageSquare },
-  { to:"/communities", icon:Users },
-  { to:"/profile",     icon:User },
+  { to: "/feed",        icon: Home },
+  { to: "/communities", icon: Users },
+  { to: "/messages",    icon: Mail },
+  { to: "/resources",   icon: BookOpen },
 ];
 
-/* ── Main Layout ─────────────────────────────────────────────────────── */
 export default function Layout() {
-  const { user, logout }  = useAuth();
-  const { dark, toggle }  = useTheme();
-  const navigate           = useNavigate();
-  const location           = useLocation();
-  const [menuOpen,    setMenuOpen]    = useState(false);
-  const [userMenuOpen,setUserMenuOpen]= useState(false);
-  const [notifOpen,   setNotifOpen]   = useState(false);
+  const { user, logout } = useAuth();
+  const { dark, toggle } = useTheme();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [notifOpen,  setNotifOpen]  = useState(false);
+  const [userMenu,   setUserMenu]   = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [mobileSearch,setMobileSearch]= useState(false);
 
-  // Load unread notification count
   useEffect(() => {
     api.get("/notifications").then(r => setUnreadCount(r.data.unreadCount || 0)).catch(() => {});
   }, []);
 
+  useEffect(() => { setNotifOpen(false); setUserMenu(false); }, [location.pathname]);
+
   const handleLogout = async () => { await logout(); navigate("/login"); };
 
-  return (
-    <div className="flex flex-col h-screen overflow-hidden">
-      {/* ── TOP NAVBAR ── */}
-      <header className="cf-navbar text-white flex items-center px-4 h-14 shrink-0 z-30 shadow-md">
-        {/* Logo */}
-        <NavLink to="/dashboard" className="flex items-center gap-2 mr-4 shrink-0">
-          <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center font-display font-bold text-sm">C</div>
-          <span className="font-display font-bold text-lg tracking-tight hidden sm:block">Campusfriend</span>
-        </NavLink>
+  // Feed + profile use X's narrow 600px column with the right rail.
+  // Other pages get a wider column (no rail) so their layouts don't get squeezed.
+  const narrow = location.pathname.startsWith("/feed") || location.pathname.startsWith("/profile");
+  const profilePath = `/profile/${user?.username}`;
+  const resolve = (to) => (to === "/profile" ? profilePath : to);
 
-        {/* Desktop search */}
-        <div className="hidden md:block flex-1 max-w-lg mx-auto">
-          <SearchBar />
+  const renderNotif = (mobile = false) => (
+    <div className={mobile ? "relative flex-1 flex justify-center" : "relative"}>
+      <button onClick={() => { setNotifOpen(v => !v); setUserMenu(false); }}
+        className={mobile ? "relative p-3" : "x-nav-link w-full xl:pr-6"} style={{ color: "var(--text)" }}>
+        <span className="relative">
+          <Bell size={26} strokeWidth={notifOpen ? 2.6 : 1.8} />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-primary-500 rounded-full text-[11px] font-bold text-white flex items-center justify-center">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </span>
+        {!mobile && <span className={`hidden xl:block text-xl ${notifOpen ? "font-bold" : ""}`}>Notifications</span>}
+      </button>
+      {notifOpen && <NotifPanel onRead={() => setUnreadCount(0)} />}
+    </div>
+  );
+
+  return (
+    <div className="h-screen flex justify-center overflow-hidden" style={{ background: "var(--bg)", color: "var(--text)" }}>
+      {/* ── LEFT NAV (md+) ── */}
+      <header className="hidden md:flex flex-col justify-between shrink-0 w-[88px] xl:w-[275px] px-2 xl:pr-4 py-1 h-screen">
+        <div>
+          <Link to="/feed" className="inline-flex p-3 rounded-full x-nav-link !p-3 !gap-0 mb-1">
+            <Logo size={30} />
+          </Link>
+
+          <nav className="space-y-0.5">
+            {NAV_ITEMS.slice(0, 3).map(({ to, label, icon: Icon }) => (
+              <NavLink key={to} to={resolve(to)} className="x-nav-link xl:pr-6" style={{ color: "var(--text)" }}>
+                {({ isActive }) => (<>
+                  <Icon size={26} strokeWidth={isActive ? 2.6 : 1.8} />
+                  <span className={`hidden xl:block text-xl ${isActive ? "font-bold" : ""}`}>{label}</span>
+                </>)}
+              </NavLink>
+            ))}
+            {renderNotif()}
+            {NAV_ITEMS.slice(3).map(({ to, label, icon: Icon }) => (
+              <NavLink key={to} to={resolve(to)} className="x-nav-link xl:pr-6" style={{ color: "var(--text)" }}>
+                {({ isActive }) => (<>
+                  <Icon size={26} strokeWidth={isActive ? 2.6 : 1.8} />
+                  <span className={`hidden xl:block text-xl ${isActive ? "font-bold" : ""}`}>{label}</span>
+                </>)}
+              </NavLink>
+            ))}
+          </nav>
+
+          <button onClick={() => navigate("/feed")}
+            className="mt-4 bg-primary-500 hover:bg-primary-800 text-white font-bold rounded-full transition-colors w-[52px] h-[52px] xl:w-full xl:h-[52px] flex items-center justify-center text-[17px]">
+            <Feather className="w-6 h-6 xl:hidden" />
+            <span className="hidden xl:block">Post</span>
+          </button>
         </div>
 
-        {/* Mobile search */}
-        {mobileSearch && (
-          <div className="flex-1 md:hidden mx-2">
-            <SearchBar onClose={() => setMobileSearch(false)} />
-          </div>
-        )}
-
-        <div className="ml-auto flex items-center gap-1">
-          {/* Mobile search toggle */}
-          <button className="md:hidden p-2 hover:bg-white/10 rounded-full transition"
-            onClick={() => setMobileSearch(v => !v)}>
-            <Search className="w-5 h-5" />
-          </button>
-
-          {/* Dark mode toggle */}
-          <button onClick={toggle}
-            className="p-2 hover:bg-white/10 rounded-full transition"
-            title={dark ? "Switch to light mode" : "Switch to dark mode"}>
-            {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
-
-          {/* Notifications */}
-          <div className="relative">
-            <button onClick={() => { setNotifOpen(v => !v); setUserMenuOpen(false); }}
-              className="relative p-2 hover:bg-white/10 rounded-full transition">
-              <Bell className="w-5 h-5" />
-              {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-[9px] font-bold flex items-center justify-center">
-                  {unreadCount > 9 ? "9+" : unreadCount}
-                </span>
-              )}
-            </button>
-            {notifOpen && <NotifDropdown />}
-          </div>
-
-          {/* User menu */}
-          <div className="relative">
-            <button
-              onClick={() => { setUserMenuOpen(v => !v); setNotifOpen(false); }}
-              className="flex items-center gap-2 px-2 py-1 hover:bg-white/10 rounded-lg transition">
-              {/* Avatar — properly shows profile picture */}
-              <UserAvatar user={user} size={28} className="ring-2 ring-white/30" />
-              <span className="text-sm font-medium hidden sm:block">
-                {user?.fullName?.split(" ")[0] || "Student"}
-              </span>
-              <ChevronDown className="w-3.5 h-3.5 opacity-70 hidden sm:block" />
-            </button>
-
-            {userMenuOpen && (
-              <div className="absolute right-0 top-full mt-2 w-52 rounded-xl shadow-xl overflow-hidden z-50 fade-in"
-                style={{ background:"var(--card)", border:"1px solid var(--border)" }}>
-                {/* User info header */}
-                <div className="flex items-center gap-3 px-4 py-3 border-b" style={{ borderColor:"var(--border)", background:"var(--surface)" }}>
-                  <UserAvatar user={user} size={36} />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold truncate" style={{ color:"var(--text)" }}>{user?.fullName}</p>
-                    <p className="text-xs truncate" style={{ color:"var(--text-muted)" }}>@{user?.username}</p>
-                  </div>
-                </div>
-                <NavLink to={`/profile/${user?.username}`} onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors"
-                  style={{ color:"var(--text)" }}
-                  onMouseEnter={e => e.currentTarget.style.background="var(--surface)"}
-                  onMouseLeave={e => e.currentTarget.style.background="transparent"}>
-                  <User className="w-4 h-4" style={{ color:"var(--text-muted)" }} /> My Profile
-                </NavLink>
-                {/* Dark mode toggle in menu too */}
-                <button onClick={toggle}
-                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm w-full transition-colors"
-                  style={{ color:"var(--text)" }}
-                  onMouseEnter={e => e.currentTarget.style.background="var(--surface)"}
-                  onMouseLeave={e => e.currentTarget.style.background="transparent"}>
-                  {dark ? <Sun className="w-4 h-4" style={{ color:"var(--text-muted)" }} /> : <Moon className="w-4 h-4" style={{ color:"var(--text-muted)" }} />}
-                  {dark ? "Light mode" : "Dark mode"}
-                </button>
-                <NavLink to="/settings" onClick={() => setUserMenuOpen(false)}
-                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm transition-colors"
-                  style={{ color:"var(--text)" }}
-                  onMouseEnter={e => e.currentTarget.style.background="var(--surface)"}
-                  onMouseLeave={e => e.currentTarget.style.background="transparent"}>
-                  <Settings className="w-4 h-4" style={{ color:"var(--text-muted)" }} /> Settings
-                </NavLink>
-                <button onClick={handleLogout}
-                  className="flex items-center gap-2.5 px-4 py-2.5 text-sm w-full text-red-500 transition-colors border-t"
-                  style={{ borderColor:"var(--border)" }}
-                  onMouseEnter={e => e.currentTarget.style.background="rgba(239,68,68,0.06)"}
-                  onMouseLeave={e => e.currentTarget.style.background="transparent"}>
-                  <LogOut className="w-4 h-4" /> Sign Out
-                </button>
+        {/* account pill */}
+        <div className="relative mb-3">
+          {userMenu && (
+            <div className="absolute bottom-full left-0 mb-2 w-72 rounded-2xl border shadow-2xl overflow-hidden z-50 fade-in"
+              style={{ background: "var(--card)", borderColor: "var(--border)" }}>
+              <button onClick={toggle} className="w-full flex items-center gap-3 px-4 py-3 x-hover font-bold text-[15px]" style={{ color: "var(--text)" }}>
+                {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                {dark ? "Switch to light mode" : "Switch to dark mode"}
+              </button>
+              <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-3 x-hover font-bold text-[15px]" style={{ color: "var(--text)" }}>
+                <LogOut className="w-5 h-5" /> Log out @{user?.username}
+              </button>
+            </div>
+          )}
+          <button onClick={() => { setUserMenu(v => !v); setNotifOpen(false); }}
+            className="x-nav-link w-full !gap-3 !p-3 justify-center xl:justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              <UserAvatar user={user} size={40} />
+              <div className="hidden xl:block text-left min-w-0">
+                <p className="text-[15px] font-bold truncate" style={{ color: "var(--text)" }}>{user?.fullName}</p>
+                <p className="text-[15px] truncate" style={{ color: "var(--text-muted)" }}>@{user?.username}</p>
               </div>
-            )}
-          </div>
-
-          {/* Hamburger */}
-          <button className="md:hidden p-2 hover:bg-white/10 rounded-full transition"
-            onClick={() => setMenuOpen(v => !v)}>
-            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </div>
+            <MoreHorizontal className="hidden xl:block w-5 h-5 shrink-0" style={{ color: "var(--text)" }} />
           </button>
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* ── SIDEBAR ── */}
-        <aside className={`
-          ${menuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
-          fixed md:static inset-y-0 left-0 top-14 w-56 cf-sidebar border-r cf-border
-          flex flex-col z-20 transition-transform duration-200
-        `}>
-          <nav className="flex-1 py-4 px-2 space-y-0.5 overflow-y-auto">
-            {NAV_ITEMS.map(({ to, label, icon: Icon }) => {
-              const resolvedTo = to === "/profile" ? `/profile/${user?.username}` : to;
-              return (
-                <NavLink key={to} to={resolvedTo} onClick={() => setMenuOpen(false)}
-                  className={({ isActive }) =>
-                    `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                      isActive
-                        ? "bg-primary-700 text-white"
-                        : "hover:bg-gray-50"
-                    }`
-                  }
-                  style={({ isActive }) => isActive ? {} : { color: "var(--text)" }}
-                >
-                  <Icon size={18} className="shrink-0" />
-                  {label}
-                </NavLink>
-              );
-            })}
-          </nav>
-
-          {/* Bottom user card */}
-          <div className="p-3 border-t cf-border">
-            <div className="flex items-center gap-2.5 px-2 py-2 rounded-lg cf-surface">
-              {/* Shows actual profile picture */}
-              <UserAvatar user={user} size={32} />
-              <div className="min-w-0">
-                <p className="text-xs font-semibold truncate" style={{ color:"var(--text)" }}>{user?.fullName}</p>
-                <p className="text-xs truncate" style={{ color:"var(--text-muted)" }}>@{user?.username}</p>
-              </div>
-            </div>
+      {/* ── MAIN COLUMN ── */}
+      <div className="flex flex-1 min-w-0 justify-start" style={{ maxWidth: narrow ? 976 : 1100 }}>
+        <main
+          className={`h-screen overflow-y-auto border-x pb-16 md:pb-0 ${narrow ? "w-full max-w-[600px]" : "flex-1"}`}
+          style={{ borderColor: "var(--border)" }}>
+          {/* mobile top bar */}
+          <div className="md:hidden sticky top-0 z-20 flex items-center justify-between px-4 h-14 border-b backdrop-blur"
+            style={{ background: "color-mix(in srgb, var(--bg) 85%, transparent)", borderColor: "var(--border)" }}>
+            <Link to={profilePath}><UserAvatar user={user} size={32} /></Link>
+            <Logo size={28} />
+            <button onClick={toggle} className="p-1.5 rounded-full x-hover" style={{ color: "var(--text)" }}>
+              {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
           </div>
-        </aside>
-
-        {menuOpen && (
-          <div className="fixed inset-0 bg-black/30 z-10 md:hidden" onClick={() => setMenuOpen(false)} />
-        )}
-
-        {/* ── MAIN CONTENT ── */}
-        <main className="flex-1 overflow-y-auto pb-16 md:pb-0" style={{ background:"var(--bg)" }}>
           <Outlet />
         </main>
+        {narrow && <RightRail />}
       </div>
 
       {/* ── MOBILE BOTTOM NAV ── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex items-center border-t"
-        style={{ background:"var(--card)", borderColor:"var(--border)" }}>
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 flex items-center border-t backdrop-blur"
+        style={{ background: "color-mix(in srgb, var(--bg) 92%, transparent)", borderColor: "var(--border)" }}>
         {MOBILE_NAV.map(({ to, icon: Icon }) => {
-          const resolvedTo = to === "/profile" ? `/profile/${user?.username}` : to;
-          const isActive   = location.pathname === resolvedTo || (to !== "/profile" && location.pathname.startsWith(to));
+          const active = location.pathname.startsWith(to);
           return (
-            <NavLink key={to} to={resolvedTo}
-              className="flex-1 flex flex-col items-center py-2.5">
-              <Icon size={22} className={isActive ? "text-primary-700" : ""} style={isActive ? {} : { color:"var(--text-muted)" }} />
+            <NavLink key={to} to={to} className="flex-1 flex justify-center py-3" style={{ color: "var(--text)" }}>
+              <Icon size={26} strokeWidth={active ? 2.6 : 1.8} />
             </NavLink>
           );
         })}
-        {/* Notifications in mobile bottom nav */}
-        <button className="flex-1 flex flex-col items-center py-2.5 relative"
-          onClick={() => setNotifOpen(v => !v)}>
-          <Bell size={22} style={{ color: notifOpen ? undefined : "var(--text-muted)" }}
-            className={notifOpen ? "text-primary-700" : ""} />
-          {unreadCount > 0 && (
-            <span className="absolute top-1.5 right-5 w-3.5 h-3.5 bg-red-500 rounded-full text-[8px] font-bold text-white flex items-center justify-center">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-        </button>
+        {renderNotif(true)}
       </nav>
+
+      {/* mobile floating post button on Home */}
+      {location.pathname.startsWith("/feed") && (
+        <button onClick={() => document.getElementById("compose-box")?.focus()}
+          className="md:hidden fixed right-4 bottom-20 z-30 w-14 h-14 rounded-full bg-primary-500 text-white flex items-center justify-center shadow-lg">
+          <Feather className="w-6 h-6" />
+        </button>
+      )}
     </div>
   );
 }

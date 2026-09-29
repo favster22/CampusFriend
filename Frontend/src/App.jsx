@@ -31,7 +31,7 @@ const PrivateRoute = ({ children }) => {
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return null;
-  return user ? <Navigate to="/dashboard" replace /> : children;
+  return user ? <Navigate to="/feed" replace /> : children;
 };
 
 export default function App() {
@@ -44,7 +44,7 @@ export default function App() {
           <Route path="/reset-password/:token" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
 
           <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
-            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route index element={<Navigate to="/feed" replace />} />
             <Route path="dashboard"   element={<DashboardPage />} />
             <Route path="messages"    element={<MessagesPage />} />
             <Route path="messages/:chatId" element={<MessagesPage />} />
@@ -56,7 +56,7 @@ export default function App() {
             <Route path="admin" element={<AdminPanel />} />
           </Route>
 
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/feed" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -7,7 +7,7 @@ export function ThemeProvider({ children }) {
     // Respect saved preference, then system preference
     const saved = localStorage.getItem("cf_theme");
     if (saved) return saved === "dark";
-    return true; 
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
   });
 
   useEffect(() => {

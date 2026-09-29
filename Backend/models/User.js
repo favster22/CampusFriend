@@ -46,6 +46,12 @@ const userSchema = new mongoose.Schema(
     showOnlineStatus:  { type: Boolean, default: true },
     hideLikes:         { type: Boolean, default: false },
 
+        // ── Student ID card (uploaded at sign up) ──────────────────────
+    idCardFront:      { type: String, select: false, default: "" },
+    idCardBack:       { type: String, select: false, default: "" },
+    idCardValidFrom:  { type: Date },
+    idCardValidUntil: { type: Date },
+
     // ── Verification ───────────────────────────────────────────────
     verified: { type: Boolean, default: false },
     verificationApplication: {

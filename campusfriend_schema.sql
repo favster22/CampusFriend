@@ -1,7 +1,4 @@
--- ─────────────────────────────────────────────────────────────────────────────
--- CampusFriend PostgreSQL Schema (v2)
--- Updated to match actual backend models and controllers
--- ─────────────────────────────────────────────────────────────────────────────
+
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
@@ -13,6 +10,10 @@ CREATE TABLE users (
   email                 VARCHAR(255) NOT NULL UNIQUE,
   password              TEXT         NOT NULL,
   student_id            VARCHAR(50),
+  id_card_front         TEXT,
+  id_card_back          TEXT,
+  id_card_valid_from    DATE,
+  id_card_valid_until   DATE,
   department            VARCHAR(100),
   bio                   TEXT,
   avatar                TEXT,

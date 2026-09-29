@@ -4,6 +4,7 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcryptjs");
 const PasswordResetToken = require("../models/PasswordResetToken");
+const { validateCardValidity, isValidImage } = require("../utils/idCardValidation");
 
 // ─── Email transporter (Gmail) ────────────────────────────────────────────────
 const transporter = nodemailer.createTransport({
@@ -14,18 +15,29 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// @desc    Register new student
-// @route   POST /api/auth/register
-// @access  Public
 const register = async (req, res) => {
   try {
-    const { fullName, username, email, password, studentId, department } =
-      req.body;
+    const {
+      fullName, username, email, password, studentId, department,
+      idCardFront, idCardBack, idCardValidFrom, idCardValidUntil,
+    } = req.body;
 
     if (!fullName || !username || !email || !password) {
       return res
         .status(400)
         .json({ success: false, message: "Please provide all required fields" });
+    }
+
+    // ── Student ID card checks (front + back, in date, 4-year span) ──────────
+    if (!isValidImage(idCardFront) || !isValidImage(idCardBack)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please upload clear images (JPG, PNG or WEBP) of the front and back of your student ID card.",
+      });
+    }
+    const cardCheck = validateCardValidity(idCardValidFrom, idCardValidUntil);
+    if (!cardCheck.ok) {
+      return res.status(400).json({ success: false, message: cardCheck.message });
     }
 
     const userExists = await User.findOne({
@@ -46,6 +58,10 @@ const register = async (req, res) => {
       password,
       studentId: studentId || undefined,
       department: department || "",
+      idCardFront,
+      idCardBack,
+      idCardValidFrom: cardCheck.from,
+      idCardValidUntil: cardCheck.until,
     });
 
     const token = generateToken(user._id);
@@ -74,9 +90,7 @@ const register = async (req, res) => {
   }
 };
 
-// @desc    Login student
-// @route   POST /api/auth/login
-// @access  Public
+
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;

@@ -1,4 +1,4 @@
-// models/PasswordResetToken.js
+
 const mongoose = require("mongoose");
 
 const passwordResetTokenSchema = new mongoose.Schema({
@@ -17,7 +17,6 @@ const passwordResetTokenSchema = new mongoose.Schema({
   },
 });
 
-// Auto-delete expired tokens from the DB
 passwordResetTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = mongoose.model("PasswordResetToken", passwordResetTokenSchema);
